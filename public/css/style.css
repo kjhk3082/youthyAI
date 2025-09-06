@@ -1230,3 +1230,194 @@ body {
         transform: rotate(360deg);
     }
 }
+
+/* Enhanced Answer Formatting with Blue Highlights */
+.highlight-blue {
+    background: linear-gradient(to right, rgba(0, 122, 255, 0.08), rgba(0, 122, 255, 0.05));
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #0056b3;
+    font-weight: 600;
+    display: inline-block;
+    margin: 0 2px;
+}
+
+.answer-section {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    border: 1px solid rgba(0, 122, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.05);
+}
+
+.answer-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #007AFF;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.answer-section-content {
+    color: var(--text-primary);
+    line-height: 1.7;
+}
+
+.info-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #007AFF, #5AC8FA);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 4px;
+}
+
+.key-info {
+    background: linear-gradient(to bottom, #f0f8ff, #ffffff);
+    border-left: 3px solid #007AFF;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.key-info-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #007AFF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.key-info-content {
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.policy-amount {
+    background: linear-gradient(135deg, #007AFF, #0056b3);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 700;
+    font-size: 16px;
+    margin: 8px 0;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+}
+
+.eligibility-list {
+    background: #f8fbff;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.eligibility-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 8px 0;
+    color: var(--text-primary);
+}
+
+.eligibility-icon {
+    color: #007AFF;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.contact-info {
+    background: linear-gradient(to right, #f0f8ff, #ffffff);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.contact-icon {
+    background: #007AFF;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.contact-details {
+    flex: 1;
+}
+
+.contact-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.contact-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Enhanced Policy Card */
+.policy-card {
+    background: linear-gradient(to right, #f8fbff, #ffffff);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    border-left: 4px solid #007AFF;
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08);
+    transition: all 0.3s ease;
+}
+
+.policy-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.policy-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #007AFF;
+    margin-bottom: 8px;
+}
+
+.policy-description {
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.policy-detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+.policy-detail-icon {
+    color: #007AFF;
+    flex-shrink: 0;
+}
+
+.policy-contact {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #007AFF;
+    font-weight: 600;
+}

@@ -403,31 +403,92 @@ class YouthyChat {
     }
 
     formatMessage(text) {
-        // Enhanced formatting for better readability
+        // Enhanced formatting with beautiful blue highlights
+        
+        // Process sections with blue highlighting
+        text = this.applyBlueHighlights(text);
         
         // Headers
         text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
         text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>');
         text = text.replace(/^# (.+)$/gm, '<h3>$1</h3>');
         
-        // Policy cards for structured content
-        text = text.replace(/📍\s*\*\*(.+?)\*\*/g, '<div class="policy-card"><div class="policy-title">📍 $1</div><div class="policy-description">');
+        // Policy cards with enhanced styling
+        text = text.replace(/📍\s*\*\*(.+?)\*\*/g, (match, title) => {
+            return `<div class="policy-card">
+                <div class="policy-title">📍 ${title}</div>
+                <div class="policy-description">`;
+        });
+        
+        // Numbered policies
         text = text.replace(/(\d+\.\s*\*\*[^*]+\*\*[^📍]+?)(?=\d+\.\s*\*\*|$)/gs, (match) => {
             return `<div class="policy-card">${match}</div>`;
+        });
+        
+        // Key information sections
+        text = text.replace(/💡\s*\*\*(.+?)\*\*/g, '<div class="key-info"><div class="key-info-title">💡 중요 정보</div><div class="key-info-content">$1</div></div>');
+        
+        // Contact information
+        text = text.replace(/📞\s*([\d-]+)/g, (match, phone) => {
+            return `<div class="contact-info">
+                <div class="contact-icon">📞</div>
+                <div class="contact-details">
+                    <div class="contact-label">문의처</div>
+                    <div class="contact-value">${phone}</div>
+                </div>
+            </div>`;
         });
         
         // Bold text
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         
-        // Phone numbers with icon
-        text = text.replace(/📞\s*([\d-]+)/g, '<span class="policy-contact">📞 $1</span>');
-        
         // Bullet points with better spacing
-        text = text.replace(/^•\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">•</span><span>$1</span></div>');
-        text = text.replace(/^-\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">•</span><span>$1</span></div>');
+        text = text.replace(/^•\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
+        text = text.replace(/^-\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
         
         // Line breaks
         text = text.replace(/\n/g, '<br>');
+        
+        return text;
+    }
+    
+    applyBlueHighlights(text) {
+        // Highlight important keywords and amounts
+        const highlightPatterns = [
+            // Money amounts
+            /(\d{1,3}(?:,\d{3})*(?:만)?\s*원)/g,
+            // Percentages
+            /(\d+(?:\.\d+)?%)/g,
+            // Age ranges
+            /(만?\s*\d+세(?:\s*~\s*\d+세)?)/g,
+            // Important keywords
+            /(최대|최소|월|연|일일|지원금|보조금|대출|임대|할인|무료|면제)/g
+        ];
+        
+        highlightPatterns.forEach(pattern => {
+            text = text.replace(pattern, '<span class="highlight-blue">$1</span>');
+        });
+        
+        // Special formatting for amounts
+        text = text.replace(/지원금액:\s*(.+?)(?=\n|$)/g, (match, amount) => {
+            return `<div class="policy-amount">💰 ${amount}</div>`;
+        });
+        
+        // Format eligibility as a list
+        text = text.replace(/자격조건:\s*(.+?)(?=\n\n|$)/gs, (match, conditions) => {
+            const items = conditions.split(/[,،]/)
+                .map(item => item.trim())
+                .filter(item => item)
+                .map(item => `<div class="eligibility-item">
+                    <span class="eligibility-icon">✓</span>
+                    <span>${item}</span>
+                </div>`)
+                .join('');
+            return `<div class="eligibility-list">
+                <div class="key-info-title">자격조건</div>
+                ${items}
+            </div>`;
+        });
         
         return text;
     }
