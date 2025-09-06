@@ -47,15 +47,17 @@ app.get('/', (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'ok', 
-        message: 'YOUTHY AI Server with API Integration',
+        message: 'YOUTHY AI Server with GPT-4 Turbo',
+        model: 'gpt-4-turbo-preview',
         timestamp: new Date().toISOString(),
         apis: {
-            openai: !!process.env.OPENAI_API_KEY,
+            'openai_gpt4': !!process.env.OPENAI_API_KEY,
             tavily: !!process.env.TAVILY_API_KEY,
             perplexity: !!process.env.PERPLEXITY_API_KEY,
             youthcenter: !!process.env.YOUTHCENTER_API_KEY,
             seoul: !!process.env.SEOUL_OPEN_DATA_API_KEY
-        }
+        },
+        features: ['GPT-4 Turbo', 'Advanced Reasoning', 'Real-time Search', 'Premium Analysis']
     });
 });
 
@@ -215,9 +217,20 @@ async function searchWebForPolicies(query) {
 
 // Generate response using OpenAI
 async function generateOpenAIResponse(userMessage, policies, intent) {
-    const systemPrompt = `당신은 한국 청년 정책 전문 상담사입니다. 
-    청년들에게 정책 정보를 친근하고 이해하기 쉽게 설명해주세요.
-    이모지를 적절히 사용하고, 중요한 정보는 **볼드** 처리해주세요.`;
+    const systemPrompt = `당신은 한국 최고의 청년 정책 전문 AI 상담사입니다.
+    GPT-4 Turbo의 고급 추론 능력을 활용하여 청년들에게 맞춤형 정책을 추천합니다.
+    
+    역할:
+    - 청년 정책에 대한 깊이 있는 분석과 상담 제공
+    - 개인의 상황을 고려한 맞춤형 정책 추천
+    - 복잡한 정책 내용을 쉽고 명확하게 설명
+    - 실시간 데이터와 AI 분석을 결합한 최적의 솔루션 제시
+    
+    응답 스타일:
+    - 친근하고 전문적인 톤 유지
+    - 이모지를 적절히 사용하여 가독성 향상
+    - **중요 정보**는 볼드 처리
+    - 단계별 안내와 구체적인 액션 플랜 제시`;
     
     const policiesContext = policies.slice(0, 5).map(p => 
         `- ${p.title}: ${p.description} (지원금: ${p.amount}, 자격: ${p.eligibility})`
@@ -235,12 +248,12 @@ async function generateOpenAIResponse(userMessage, policies, intent) {
     
     try {
         const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4-turbo-preview",  // 상급 모델로 업그레이드
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
             ],
-            max_tokens: 1000,
+            max_tokens: 2000,  // 더 긴 응답 가능
             temperature: 0.7
         });
         
@@ -330,19 +343,21 @@ function isSelfIntroductionRequest(message) {
 function getSelfIntroduction() {
     return {
         message: `안녕하세요! 저는 **YOUTHY AI 챗봇**입니다 🤖\n\n` +
-                `저는 실시간 API를 활용해 최신 청년 정책을 안내해드립니다!\n\n` +
-                `**🔥 활용 중인 데이터:**\n` +
+                `**🚀 GPT-4 Turbo 기반** 최첨단 청년 정책 AI 상담사입니다!\n\n` +
+                `**🔥 활용 중인 최신 기술:**\n` +
+                `• **OpenAI GPT-4 Turbo** - 최고급 AI 언어 모델\n` +
                 `• 청년센터 실시간 API\n` +
                 `• 서울 열린데이터 광장\n` +
-                `• Tavily 웹 검색\n` +
-                `• OpenAI GPT-3.5\n` +
-                `• 로컬 정책 DB (20+ 정책)\n\n` +
-                `**💡 제공 서비스:**\n` +
-                `• 실시간 청년 정책 검색\n` +
-                `• 지역별 맞춤 정책 안내\n` +
-                `• AI 기반 상세 설명\n` +
-                `• 신청 방법 & 자격 조건 안내\n\n` +
-                `궁금한 정책이 있으시면 편하게 물어보세요! 😊`,
+                `• Tavily 고급 웹 검색 엔진\n` +
+                `• 로컬 정책 DB (50+ 정책)\n\n` +
+                `**💎 프리미엄 서비스:**\n` +
+                `• GPT-4의 고급 추론으로 맞춤형 정책 추천\n` +
+                `• 복잡한 상황도 정확히 분석\n` +
+                `• 실시간 데이터 + AI 분석 결합\n` +
+                `• 상세한 단계별 신청 가이드\n` +
+                `• 개인 맞춤형 정책 조합 제시\n\n` +
+                `**GPT-4 Turbo의 강력한 성능**으로 더 똑똑하고 정확한 답변을 드립니다! 💪\n` +
+                `궁금한 점이 있으시면 무엇이든 물어보세요! 😊`,
         references: [],
         followUpQuestions: [
             '최신 청년 정책 보여줘',
@@ -428,11 +443,12 @@ app.use((req, res) => {
 });
 
 // Start server
-console.log('🔧 Starting API-Enhanced YOUTHY Server...');
+console.log('🔧 Starting GPT-4 Turbo Enhanced YOUTHY Server...');
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 API-Enhanced YOUTHY Server running on http://localhost:${PORT}`);
+    console.log(`🚀 GPT-4 Turbo YOUTHY Server running on http://localhost:${PORT}`);
+    console.log(`🤖 AI Model: GPT-4 Turbo (gpt-4-turbo-preview)`);
     console.log(`📊 APIs configured:`, {
-        OpenAI: !!process.env.OPENAI_API_KEY,
+        'OpenAI GPT-4': !!process.env.OPENAI_API_KEY,
         Tavily: !!process.env.TAVILY_API_KEY,
         YouthCenter: !!process.env.YOUTHCENTER_API_KEY,
         Seoul: !!process.env.SEOUL_OPEN_DATA_API_KEY
