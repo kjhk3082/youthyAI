@@ -6,6 +6,11 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
+
+// RAG System import
+const RAGSystem = require('./src/ragSystem');
+const ragSystem = new RAGSystem();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -93,7 +98,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Main chat endpoint
+// Main chat endpoint with RAG System
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, context } = req.body;
@@ -109,19 +114,49 @@ app.post('/api/chat', async (req, res) => {
             context: context
         });
 
-        // Process the message and generate response
-        const response = await processMessage(message);
-
-        // Log AI response
-        chatHistory.push({
-            timestamp: new Date().toISOString(),
-            ai: response.message
-        });
-
-        res.json(response);
+        // Check if API key is configured
+        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your-api-key-here') {
+            console.log('⚠️  OpenAI API key not configured. Using fallback response.');
+            console.log('📝 To use RAG system, please set OPENAI_API_KEY in .env file');
+            
+            // Use existing processMessage as fallback
+            const response = await processMessage(message);
+            
+            // Add warning to response
+            response.warning = 'RAG system not active. Please configure API key.';
+            
+            res.json(response);
+        } else {
+            // Use RAG System for response
+            console.log('🤖 Using RAG System for response generation');
+            const response = await ragSystem.processQuery(message);
+            
+            // Log AI response
+            chatHistory.push({
+                timestamp: new Date().toISOString(),
+                ai: response.message,
+                method: 'RAG'
+            });
+            
+            res.json({
+                ...response,
+                timestamp: new Date().toISOString(),
+                method: 'RAG'
+            });
+        }
     } catch (error) {
         console.error('Chat API Error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        
+        // Fallback to local response on error
+        try {
+            const fallbackResponse = await processMessage(req.body.message);
+            res.json({
+                ...fallbackResponse,
+                warning: 'Using fallback response due to RAG error'
+            });
+        } catch (fallbackError) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
     }
 });
 
@@ -204,6 +239,12 @@ async function processMessage(message) {
 function analyzeIntent(message) {
     if (message.includes('월세') || message.includes('주거') || message.includes('집')) {
         return 'housing';
+    } else if (message.includes('전세') || message.includes('전세자금')) {
+        return 'jeonse';
+    } else if (message.includes('청년수당') || message.includes('수당')) {
+        return 'allowance';
+    } else if (message.includes('신청') && (message.includes('방법') || message.includes('어떻게'))) {
+        return 'application';
     } else if (message.includes('취업') || message.includes('일자리') || message.includes('인턴')) {
         return 'employment';
     } else if (message.includes('창업') || message.includes('사업') || message.includes('스타트업')) {
@@ -348,6 +389,133 @@ function generateResponse(intent, policies, originalMessage) {
                 '전세자금 대출 조건은?',
                 '청년수당 받을 수 있을까?'
             ];
+            break;
+            
+        case 'jeonse':
+            message = '📍 **청년 전세자금 대출 상세 조건**\n\n';
+            message += '**1. 기본 자격 요건**\n';
+            message += '• 연령: 만 19세~34세 (단독세대주 포함)\n';
+            message += '• 소득: 연 소득 5천만원 이하\n';
+            message += '• 자산: 순자산 3.61억원 이하\n';
+            message += '• 주택: 무주택자\n\n';
+            
+            message += '**2. 대출 조건**\n';
+            message += '• 대출한도: 최대 2억원 (보증금의 80% 이내)\n';
+            message += '• 금리: 연 1.2~2.1% (소득수준별 차등)\n';
+            message += '• 대출기간: 2년 (4회 연장 가능, 최장 10년)\n\n';
+            
+            message += '**3. 대상 주택**\n';
+            message += '• 임차보증금 3억원 이하\n';
+            message += '• 전용면적 85㎡ 이하\n';
+            message += '• 수도권: 보증금 3억원 이하\n';
+            message += '• 지방: 보증금 2억원 이하\n\n';
+            
+            message += '**4. 신청 방법**\n';
+            message += '• 온라인: 기금e든든 홈페이지\n';
+            message += '• 오프라인: 우리은행, 국민은행, 신한은행, 농협, 하나은행\n\n';
+            
+            message += '💡 **Tip**: 중소기업 재직자는 더 낮은 금리 적용!';
+            
+            references = [
+                { title: '주택도시기금', url: 'https://nhuf.molit.go.kr', snippet: '청년 전세자금대출 공식 안내' },
+                { title: '기금e든든', url: 'https://enhuf.molit.go.kr', snippet: '온라인 신청 사이트' }
+            ];
+            
+            followUpQuestions = [
+                '필요 서류는 뭔가요?',
+                '중소기업 재직자 혜택은?',
+                '대출 승인까지 얼마나 걸려요?'
+            ];
+            break;
+            
+        case 'allowance':
+            message = '💰 **청년수당 상세 정보**\n\n';
+            message += '**서울시 청년수당**\n';
+            message += '• 지원대상: 만 19~34세 미취업 청년\n';
+            message += '• 지원금액: 월 50만원 × 최대 6개월\n';
+            message += '• 소득조건: 중위소득 150% 이하\n';
+            message += '• 활동조건: 주 20시간 이상 구직활동\n\n';
+            
+            message += '**신청 절차**\n';
+            message += '1. 서울시 청년포털 회원가입\n';
+            message += '2. 온라인 신청서 작성\n';
+            message += '3. 자기활동계획서 제출\n';
+            message += '4. 서류 심사 (2주)\n';
+            message += '5. 면접 심사\n';
+            message += '6. 최종 선발\n\n';
+            
+            message += '**의무사항**\n';
+            message += '• 매월 활동보고서 제출\n';
+            message += '• 청년활동 프로그램 참여\n';
+            message += '• 취업 시 즉시 신고\n\n';
+            
+            message += '⚠️ **주의**: 타 정부지원금과 중복 수급 불가!';
+            
+            references = [
+                { title: '서울시 청년수당', url: 'https://youth.seoul.go.kr/site/main/content/youth_allowance', snippet: '청년수당 공식 안내' }
+            ];
+            
+            followUpQuestions = [
+                '청년수당 신청 기간은?',
+                '활동보고서 어떻게 쓰나요?',
+                '다른 지원금과 중복 가능한가요?'
+            ];
+            break;
+            
+        case 'application':
+            const originalLower = originalMessage.toLowerCase();
+            if (originalLower.includes('월세')) {
+                message = '📝 **청년 월세 지원 신청 방법**\n\n';
+                message += '**Step 1: 자격 확인**\n';
+                message += '• 만 19~39세\n';
+                message += '• 무주택자\n';
+                message += '• 중위소득 150% 이하\n';
+                message += '• 임차보증금 5천만원 이하, 월세 60만원 이하\n\n';
+                
+                message += '**Step 2: 서류 준비**\n';
+                message += '• 신분증\n';
+                message += '• 임대차계약서\n';
+                message += '• 소득증빙서류\n';
+                message += '• 주민등록등본\n';
+                message += '• 무주택 확인서\n\n';
+                
+                message += '**Step 3: 온라인 신청**\n';
+                message += '1. 서울시 청년포털 접속 (youth.seoul.go.kr)\n';
+                message += '2. 회원가입 및 로그인\n';
+                message += '3. "청년 월세 지원" 메뉴 클릭\n';
+                message += '4. 신청서 작성\n';
+                message += '5. 서류 업로드\n';
+                message += '6. 제출 완료\n\n';
+                
+                message += '**Step 4: 결과 확인**\n';
+                message += '• 심사기간: 약 2~3주\n';
+                message += '• 결과통보: 문자 및 이메일\n';
+                message += '• 지급시작: 선정 다음달부터\n\n';
+                
+                message += '📅 **신청기간**: 매년 상/하반기 (공고 확인 필수!)';
+                
+                references = [
+                    { title: '서울시 청년포털', url: 'https://youth.seoul.go.kr', snippet: '월세 지원 신청 페이지' }
+                ];
+                
+                followUpQuestions = [
+                    '소득증빙서류 뭐가 필요해?',
+                    '신청 후 언제부터 받을 수 있어?',
+                    '이사하면 어떻게 해?'
+                ];
+            } else {
+                message = '신청 방법에 대해 더 구체적으로 알려주시면 자세히 안내해드리겠습니다.\n\n';
+                message += '예시:\n';
+                message += '• "월세 지원 신청 방법 알려줘"\n';
+                message += '• "전세자금 대출 신청하려면?"\n';
+                message += '• "청년수당 신청 절차는?"';
+                
+                followUpQuestions = [
+                    '월세 지원 신청 방법',
+                    '전세자금 대출 신청',
+                    '청년수당 신청하기'
+                ];
+            }
             break;
             
         case 'startup':
