@@ -1724,3 +1724,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`📱 Test page available at http://localhost:${PORT}/test`);
     console.log(`🔍 API Health: http://localhost:${PORT}/api/health`);
 });
+}
