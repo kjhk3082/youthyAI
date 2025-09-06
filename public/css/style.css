@@ -166,6 +166,12 @@ body {
     scroll-behavior: smooth;
 }
 
+.chat-container-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
 /* Date Header */
 .date-header {
     display: flex;
@@ -182,15 +188,14 @@ body {
 .welcome-section {
     padding: 0 24px;
     margin-bottom: 24px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: translateY(0);
+    opacity: 1;
 }
 
-.welcome-section.hidden {
-    opacity: 0;
-    height: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+.welcome-section.scrolled {
+    transform: translateY(-20px);
+    opacity: 0.3;
 }
 
 .ai-badge {
@@ -219,15 +224,14 @@ body {
     gap: 16px;
     padding: 0 24px;
     margin-bottom: 32px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: translateY(0);
+    opacity: 1;
 }
 
-.action-cards.hidden {
-    opacity: 0;
-    height: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+.action-cards.scrolled {
+    transform: translateY(-20px);
+    opacity: 0.3;
 }
 
 .action-card {
@@ -264,15 +268,14 @@ body {
 .suggestions {
     padding: 0 24px;
     margin-bottom: 24px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: translateY(0);
+    opacity: 1;
 }
 
-.suggestions.hidden {
-    opacity: 0;
-    height: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+.suggestions.scrolled {
+    transform: translateY(-20px);
+    opacity: 0.3;
 }
 
 .suggestion-label {
@@ -356,7 +359,7 @@ body {
 }
 
 .message-avatar.youthy-logo {
-    background: #000000;
+    background: #007AFF;
     padding: 4px;
 }
 
@@ -763,6 +766,168 @@ body {
 .view-poster-btn:hover {
     background: var(--gradient-blue-1);
     transform: translateY(-1px);
+}
+
+/* Scrap Button */
+.scrap-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    margin-top: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.scrap-btn:hover {
+    background: var(--bg-gray);
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.scrap-btn.scraped {
+    background: var(--primary-blue);
+    color: white;
+    border-color: var(--primary-blue);
+}
+
+.scrap-btn.scraped:hover {
+    background: var(--gradient-blue-1);
+    border-color: var(--gradient-blue-1);
+}
+
+/* Scrap List Modal */
+.scrap-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.scrap-modal.active {
+    display: flex;
+}
+
+.scrap-content {
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    animation: slideIn 0.3s ease;
+}
+
+.scrap-header {
+    padding: 16px 20px;
+    background: var(--bg-gray);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.scrap-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.scrap-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.scrap-close:hover {
+    background: var(--border-color);
+}
+
+.scrap-body {
+    padding: 20px;
+    max-height: calc(80vh - 60px);
+    overflow-y: auto;
+}
+
+.scrap-item {
+    padding: 16px;
+    background: var(--bg-gray);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+.scrap-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.scrap-item-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.scrap-item-delete {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.scrap-item-delete:hover {
+    background: white;
+    color: red;
+}
+
+.scrap-item-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.scrap-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.scrap-empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.scrap-empty-text {
+    font-size: 16px;
 }
 
 @keyframes fadeIn {

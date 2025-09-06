@@ -16,7 +16,11 @@
                 <div class="logo">
                     <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect width="44" height="44" rx="10" fill="#007AFF"/>
-                        <path d="M22 12L24.5 19.5L32 22L24.5 24.5L22 32L19.5 24.5L12 22L19.5 19.5L22 12Z" fill="white"/>
+                        <g transform="translate(22, 22)">
+                            <!-- Center star made of 4 diamonds -->
+                            <path d="M0 -8L4 0L0 8L-4 0Z" fill="white"/>
+                            <path d="M-8 0L0 -4L8 0L0 4Z" fill="white"/>
+                        </g>
                     </svg>
                 </div>
                 <h1 class="app-title">YOUTHY</h1>
@@ -77,11 +81,11 @@
                         </svg>
                         <span>혜택</span>
                     </button>
-                    <button class="nav-item">
+                    <button class="nav-item" id="scrapNavBtn">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                             <path d="M5 3H15C15.55 3 16 3.45 16 4V18L10 15L4 18V4C4 3.45 4.45 3 5 3Z" stroke="currentColor" stroke-width="2"/>
                         </svg>
-                        <span>저장</span>
+                        <span>채팅 스크랩</span>
                     </button>
                 </nav>
             </aside>
@@ -102,7 +106,10 @@
                 <div class="welcome-section">
                     <div class="ai-badge">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M10 5L11.5 8.5L15 10L11.5 11.5L10 15L8.5 11.5L5 10L8.5 8.5L10 5Z" fill="white"/>
+                            <g transform="translate(10, 10)">
+                                <path d="M0 -4L2 0L0 4L-2 0Z" fill="white"/>
+                                <path d="M-4 0L0 -2L4 0L0 2Z" fill="white"/>
+                            </g>
                         </svg>
                         <span>유씨 AI챗봇</span>
                     </div>

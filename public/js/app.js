@@ -9,10 +9,14 @@ class YouthyChat {
         this.welcomeSection = document.querySelector('.welcome-section');
         this.actionCardsSection = document.querySelector('.action-cards');
         this.suggestionsSection = document.querySelector('.suggestions');
+        this.chatContainer = document.querySelector('.chat-container');
+        this.scrapNavBtn = document.getElementById('scrapNavBtn');
         
         this.isTyping = false;
         this.messageHistory = [];
         this.hasMessages = false;
+        this.scrapedMessages = this.loadScrapedMessages();
+        this.messageIdCounter = 0;
         
         // Policy poster data
         this.policyPosters = {
@@ -66,8 +70,37 @@ class YouthyChat {
             });
         });
 
+        // Scrap navigation button
+        if (this.scrapNavBtn) {
+            this.scrapNavBtn.addEventListener('click', () => {
+                this.showScrapModal();
+            });
+        }
+
+        // Chat container scroll event
+        if (this.chatContainer) {
+            this.chatContainer.addEventListener('scroll', () => {
+                this.handleScroll();
+            });
+        }
+
         // Clear messages and show welcome
         this.clearMessages();
+    }
+
+    handleScroll() {
+        const scrollTop = this.chatContainer.scrollTop;
+        
+        // Add scrolled class to welcome sections when scrolled down
+        if (scrollTop > 50) {
+            this.welcomeSection?.classList.add('scrolled');
+            this.actionCardsSection?.classList.add('scrolled');
+            this.suggestionsSection?.classList.add('scrolled');
+        } else {
+            this.welcomeSection?.classList.remove('scrolled');
+            this.actionCardsSection?.classList.remove('scrolled');
+            this.suggestionsSection?.classList.remove('scrolled');
+        }
     }
 
     clearMessages() {
@@ -75,17 +108,13 @@ class YouthyChat {
         this.hasMessages = false;
     }
 
-    hideWelcomeContent() {
-        // Hide welcome section and related content when first message is sent
+    fadeWelcomeContent() {
+        // Fade welcome section when first message is sent
         if (!this.hasMessages) {
-            this.welcomeSection.classList.add('hidden');
-            this.actionCardsSection.classList.add('hidden');
-            this.suggestionsSection.classList.add('hidden');
+            this.welcomeSection?.classList.add('scrolled');
+            this.actionCardsSection?.classList.add('scrolled');
+            this.suggestionsSection?.classList.add('scrolled');
             this.hasMessages = true;
-            
-            // Scroll to top of chat container
-            const chatContainer = document.querySelector('.chat-container');
-            chatContainer.scrollTop = 0;
         }
     }
 
@@ -106,8 +135,8 @@ class YouthyChat {
         const message = this.chatInput.value.trim();
         if (!message || this.isTyping) return;
 
-        // Hide welcome content on first message
-        this.hideWelcomeContent();
+        // Fade welcome content on first message
+        this.fadeWelcomeContent();
 
         // Add user message
         this.addMessage(message, 'user');
@@ -126,7 +155,7 @@ class YouthyChat {
             this.hideTypingIndicator();
             
             // Add AI response with poster option if applicable
-            this.addMessage(response.message, 'ai', response.references, response.hasPoster);
+            const messageId = this.addMessage(response.message, 'ai', response.references, response.hasPoster);
             
             // Add follow-up suggestions if available
             if (response.followUpQuestions && response.followUpQuestions.length > 0) {
@@ -176,8 +205,10 @@ class YouthyChat {
     }
 
     addMessage(text, sender, references = [], hasPoster = false) {
+        const messageId = `msg-${++this.messageIdCounter}`;
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
+        messageDiv.id = messageId;
         
         const avatarDiv = document.createElement('div');
         
@@ -186,14 +217,12 @@ class YouthyChat {
             avatarDiv.className = 'message-avatar youthy-logo';
             avatarDiv.innerHTML = `
                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="100" height="100" fill="black"/>
-                    <g transform="translate(20, 25)">
-                        <!-- Star shape -->
-                        <path d="M30 10L35 22L47 27L35 32L30 44L25 32L13 27L25 22L30 10Z" fill="#007AFF"/>
-                        <!-- Small diamond -->
-                        <rect x="24" y="0" width="12" height="12" rx="2" transform="rotate(45 30 6)" fill="#007AFF"/>
+                    <rect width="100" height="100" fill="#007AFF"/>
+                    <g transform="translate(50, 50)">
+                        <!-- Center star made of 4 diamonds -->
+                        <path d="M0 -16L8 0L0 16L-8 0Z" fill="white"/>
+                        <path d="M-16 0L0 -8L16 0L0 8Z" fill="white"/>
                     </g>
-                    <text x="50" y="75" text-anchor="middle" fill="#007AFF" font-family="Arial, sans-serif" font-size="14" font-weight="bold">YOUTHY</text>
                 </svg>
             `;
         } else {
@@ -207,6 +236,12 @@ class YouthyChat {
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
         textDiv.innerHTML = this.formatMessage(text);
+        
+        // Add scrap button for AI messages
+        if (sender === 'ai') {
+            const scrapBtn = this.createScrapButton(messageId, text);
+            textDiv.appendChild(scrapBtn);
+        }
         
         // Add poster view button if policy-related
         if (sender === 'ai' && hasPoster) {
@@ -233,6 +268,179 @@ class YouthyChat {
         
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
+        
+        return messageId;
+    }
+
+    createScrapButton(messageId, messageText) {
+        const button = document.createElement('button');
+        button.className = 'scrap-btn';
+        button.dataset.messageId = messageId;
+        
+        const isScraped = this.isMessageScraped(messageId);
+        if (isScraped) {
+            button.classList.add('scraped');
+        }
+        
+        button.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3 1H11C11.55 1 12 1.45 12 2V13L7 10.5L2 13V2C2 1.45 2.45 1 3 1Z" 
+                      fill="${isScraped ? 'currentColor' : 'none'}" 
+                      stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            ${isScraped ? '스크랩됨' : '스크랩'}
+        `;
+        
+        button.addEventListener('click', () => {
+            this.toggleScrap(messageId, messageText, button);
+        });
+        
+        return button;
+    }
+
+    toggleScrap(messageId, messageText, button) {
+        const isScraped = this.isMessageScraped(messageId);
+        
+        if (isScraped) {
+            // Remove from scraps
+            this.scrapedMessages = this.scrapedMessages.filter(msg => msg.id !== messageId);
+            button.classList.remove('scraped');
+            button.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 1H11C11.55 1 12 1.45 12 2V13L7 10.5L2 13V2C2 1.45 2.45 1 3 1Z" 
+                          fill="none" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                스크랩
+            `;
+        } else {
+            // Add to scraps
+            this.scrapedMessages.push({
+                id: messageId,
+                text: messageText,
+                time: this.getCurrentTime(),
+                date: new Date().toISOString()
+            });
+            button.classList.add('scraped');
+            button.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 1H11C11.55 1 12 1.45 12 2V13L7 10.5L2 13V2C2 1.45 2.45 1 3 1Z" 
+                          fill="currentColor" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                스크랩됨
+            `;
+        }
+        
+        this.saveScrapedMessages();
+    }
+
+    isMessageScraped(messageId) {
+        return this.scrapedMessages.some(msg => msg.id === messageId);
+    }
+
+    loadScrapedMessages() {
+        const saved = localStorage.getItem('youthyScrapedMessages');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    saveScrapedMessages() {
+        localStorage.setItem('youthyScrapedMessages', JSON.stringify(this.scrapedMessages));
+    }
+
+    showScrapModal() {
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('scrapModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'scrapModal';
+            modal.className = 'scrap-modal';
+            document.body.appendChild(modal);
+        }
+        
+        // Update modal content
+        modal.innerHTML = `
+            <div class="scrap-content">
+                <div class="scrap-header">
+                    <h3 class="scrap-title">스크랩한 채팅</h3>
+                    <button class="scrap-close" id="scrapCloseBtn">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="scrap-body">
+                    ${this.generateScrapList()}
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+        
+        // Add event listeners
+        document.getElementById('scrapCloseBtn').addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+        
+        // Add delete button listeners
+        modal.querySelectorAll('.scrap-item-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.dataset.scrapId;
+                this.deleteScrap(itemId);
+                // Refresh modal content
+                this.showScrapModal();
+            });
+        });
+    }
+
+    generateScrapList() {
+        if (this.scrapedMessages.length === 0) {
+            return `
+                <div class="scrap-empty">
+                    <div class="scrap-empty-icon">📌</div>
+                    <div class="scrap-empty-text">스크랩한 채팅이 없습니다</div>
+                </div>
+            `;
+        }
+        
+        return this.scrapedMessages.map(scrap => `
+            <div class="scrap-item">
+                <div class="scrap-item-header">
+                    <div class="scrap-item-time">${scrap.time}</div>
+                    <button class="scrap-item-delete" data-scrap-id="${scrap.id}">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="scrap-item-content">${this.formatMessage(scrap.text)}</div>
+            </div>
+        `).join('');
+    }
+
+    deleteScrap(scrapId) {
+        this.scrapedMessages = this.scrapedMessages.filter(msg => msg.id !== scrapId);
+        this.saveScrapedMessages();
+        
+        // Update button state if message is still visible
+        const messageEl = document.getElementById(scrapId);
+        if (messageEl) {
+            const scrapBtn = messageEl.querySelector('.scrap-btn');
+            if (scrapBtn) {
+                scrapBtn.classList.remove('scraped');
+                scrapBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M3 1H11C11.55 1 12 1.45 12 2V13L7 10.5L2 13V2C2 1.45 2.45 1 3 1Z" 
+                              fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    스크랩
+                `;
+            }
+        }
     }
 
     createPosterButton() {
@@ -437,12 +645,11 @@ class YouthyChat {
         avatarDiv.className = 'message-avatar youthy-logo';
         avatarDiv.innerHTML = `
             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="100" height="100" fill="black"/>
-                <g transform="translate(20, 25)">
-                    <path d="M30 10L35 22L47 27L35 32L30 44L25 32L13 27L25 22L30 10Z" fill="#007AFF"/>
-                    <rect x="24" y="0" width="12" height="12" rx="2" transform="rotate(45 30 6)" fill="#007AFF"/>
+                <rect width="100" height="100" fill="#007AFF"/>
+                <g transform="translate(50, 50)">
+                    <path d="M0 -16L8 0L0 16L-8 0Z" fill="white"/>
+                    <path d="M-16 0L0 -8L16 0L0 8Z" fill="white"/>
                 </g>
-                <text x="50" y="75" text-anchor="middle" fill="#007AFF" font-family="Arial, sans-serif" font-size="14" font-weight="bold">YOUTHY</text>
             </svg>
         `;
         
