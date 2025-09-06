@@ -208,6 +208,8 @@ function analyzeIntent(message) {
         return 'employment';
     } else if (message.includes('창업') || message.includes('사업') || message.includes('스타트업')) {
         return 'startup';
+    } else if (message.includes('인기') || message.includes('추천') || message.includes('best')) {
+        return 'popular';
     } else if (message.includes('안녕') || message.includes('반가')) {
         return 'greeting';
     } else if (message.includes('감사') || message.includes('고마')) {
@@ -304,6 +306,48 @@ function generateResponse(intent, policies, originalMessage) {
                     '취업 상담 예약하려면?'
                 ];
             }
+            break;
+            
+        case 'popular':
+            message = '🏆 **인기 있는 청년 정책 TOP 5**\n\n';
+            message += '1. **서울시 청년 월세 지원** ⭐⭐⭐⭐⭐\n';
+            message += '   • 월 최대 20만원 지원 (최대 12개월)\n';
+            message += '   • 만 19-39세 무주택 청년\n';
+            message += '   • 신청자 가장 많은 인기 정책\n\n';
+            
+            message += '2. **청년 전세자금 대출** ⭐⭐⭐⭐⭐\n';
+            message += '   • 최대 2억원 저금리 대출\n';
+            message += '   • 연 1.2~2.1% 초저금리\n';
+            message += '   • 주거 안정의 필수 정책\n\n';
+            
+            message += '3. **청년 인턴십 프로그램** ⭐⭐⭐⭐\n';
+            message += '   • 월 180만원 이상 급여\n';
+            message += '   • 정규직 전환 기회\n';
+            message += '   • 취업 성공률 80% 이상\n\n';
+            
+            message += '4. **청년 창업 지원금** ⭐⭐⭐⭐\n';
+            message += '   • 최대 1억원 지원\n';
+            message += '   • 사무실 및 멘토링 제공\n';
+            message += '   • 성공 창업 사례 다수\n\n';
+            
+            message += '5. **청년수당** ⭐⭐⭐\n';
+            message += '   • 월 50만원 현금 지원\n';
+            message += '   • 최대 6개월간 지급\n';
+            message += '   • 구직활동 집중 지원\n\n';
+            
+            message += '💡 **Tip**: 각 정책은 지역별로 조건이 다를 수 있으니 자세한 내용을 확인해보세요!';
+            
+            references = [
+                { title: '서울시 청년포털', url: 'https://youth.seoul.go.kr', snippet: '서울시 청년정책 종합 안내' },
+                { title: '청년정책 통합 플랫폼', url: 'https://www.youthcenter.go.kr', snippet: '전국 청년정책 한눈에 보기' },
+                { title: '온라인 청년센터', url: 'https://www.youthcenter.go.kr', snippet: '청년정책 원스톱 서비스' }
+            ];
+            
+            followUpQuestions = [
+                '월세 지원 신청 방법 알려줘',
+                '전세자금 대출 조건은?',
+                '청년수당 받을 수 있을까?'
+            ];
             break;
             
         case 'startup':
