@@ -10,6 +10,41 @@ const axios = require('axios');
 const OpenAI = require('openai');
 require('dotenv').config();
 
+// Import real policy fetcher for actual Seoul youth policies
+const policyFetcher = require('./real-policy-fetcher');
+
+// Helper function to calculate D-Day
+function calculateDday(periodText) {
+    if (!periodText) return null;
+    
+    // Extract end date from period text
+    const endDateMatch = periodText.match(/~\s*(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+    if (endDateMatch) {
+        const endDate = new Date(
+            parseInt(endDateMatch[1]),
+            parseInt(endDateMatch[2]) - 1,
+            parseInt(endDateMatch[3])
+        );
+        const today = new Date();
+        const diffTime = endDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 0) {
+            return `D-${diffDays}`;
+        } else if (diffDays === 0) {
+            return 'D-Day';
+        } else {
+            return '마감';
+        }
+    }
+    
+    if (periodText.includes('상시') || periodText.includes('연중')) {
+        return '상시모집';
+    }
+    
+    return null;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -24,7 +59,15 @@ const openai = new OpenAI({
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
-app.use(cors());
+// CORS - 모든 origin 허용 (프론트엔드 어디서든 접근 가능)
+app.use(cors({
+  origin: true, // Allow all origins
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('combined'));
@@ -144,15 +187,43 @@ async function processRealtimeQuery(message, userRegion) {
         console.error('로컬 DB 로드 오류:', error.message);
     }
     
-    // Parallel API calls for real-time data
+    // Get REAL Seoul youth policies first
+    let realPolicies = [];
+    try {
+        const realData = await policyFetcher.fetchAllPolicies({
+            query: message,
+            includeRealData: true,
+            sources: ['real', 'seoul']
+        });
+        
+        // Convert to chat format
+        realPolicies = realData.map(p => ({
+            title: p.policyName,
+            organization: p.incomeCondition || '서울시',
+            target: `${p.minAge}-${p.maxAge}세`,
+            period: p.applicationPeriod,
+            content: p.supportContent,
+            url: p.applicationSite,
+            dday: calculateDday(p.applicationPeriod),
+            region: region || '서울',
+            category: p.policyField,
+            isRealData: true
+        }));
+        
+        console.log(`✅ 실제 서울시 정책: ${realPolicies.length}개 로드`);
+    } catch (error) {
+        console.error('실제 정책 로드 오류:', error);
+    }
+    
+    // Parallel API calls for additional real-time data
     const [youthCenterData, tavilyData, seoulData] = await Promise.allSettled([
         fetchYouthCenterRealtime(message, region),
         searchTavilyRealtime(message),
         region === '서울' ? fetchSeoulPolicies(message) : Promise.resolve([])
     ]);
     
-    // Combine all results
-    let allPolicies = [];
+    // Combine all results (real policies first)
+    let allPolicies = [...realPolicies];
     let webReferences = [];
     
     if (youthCenterData.status === 'fulfilled') {

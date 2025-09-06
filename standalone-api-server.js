@@ -7,20 +7,14 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.API_PORT || 3001;
 
-// Middleware - CORS configuration for frontend developers
+// Middleware - CORS configuration (모든 origin 허용)
 app.use(cors({
-  origin: [
-    'http://localhost:3000',  // Frontend developer's local environment
-    'http://localhost:3001',  // API server itself
-    'http://localhost:5173',  // Vite dev server
-    'http://localhost:5174',  // Alternative Vite port
-    'https://3000-ie8kwy33uts4uea5lzj2o-6532622b.e2b.dev',
-    'https://3001-ie8kwy33uts4uea5lzj2o-6532622b.e2b.dev',
-    /^http:\/\/localhost:\d+$/  // Allow all localhost ports
-  ],
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400 // 24 hours
 }));
 app.use(express.json());
 
