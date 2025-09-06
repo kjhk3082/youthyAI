@@ -48,63 +48,60 @@ const CATEGORY_MAPPING = {
 
 // 목데이터 생성 (API 키가 없거나 실패 시 사용)
 function generateMockData(districtCode) {
-  const categories = Object.values(CATEGORY_MAPPING);
-  const districtName = Object.entries(DISTRICT_MAPPING).find(([k, v]) => v.code === districtCode)?.[1]?.ko || '서울';
+  const districtEntry = Object.entries(DISTRICT_MAPPING).find(([k, v]) => v.code === districtCode);
+  const districtName = districtEntry?.[1]?.ko || '서울';
+  const districtKey = districtEntry?.[0] || 'Seoul';
   
-  const mockPolicies = [
-    {
-      polyBizSjnm: `${districtName} 청년창업 공간 입주 모집`,
-      polyBizTy: '003002002',
-      polyBizCn: `${districtName} 거주 청년 대상 창업 공간 입주 지원. 월 임대료 지원 및 멘토링 프로그램 제공`,
-      ageInfo: '만 19세 ~ 39세',
-      rqutPrdEnd: '2025-09-30',
-      rqutProcCn: '온라인 신청',
-      applUrl: 'https://www.youthcenter.go.kr',
-      sporCn: '월 50만원 임대료 지원'
-    },
-    {
-      polyBizSjnm: `${districtName} 청년 주거 지원 프로그램`,
-      polyBizTy: '003002003',
-      polyBizCn: `${districtName} 거주 청년 대상 전세자금 대출 지원. 최대 1억원까지 저금리 대출`,
-      ageInfo: '만 20세 ~ 39세',
-      rqutPrdEnd: '2025-10-15',
-      rqutProcCn: '방문 신청',
-      applUrl: 'https://housing.seoul.go.kr',
-      sporCn: '최대 1억원, 연 1.2%'
-    },
-    {
-      polyBizSjnm: `${districtName} 청년 취업 준비 프로그램`,
-      polyBizTy: '003002001',
-      polyBizCn: `${districtName} 거주 청년 대상 취업 준비 교육 및 상담. 이력서 컨설팅 및 면접 코칭 제공`,
-      ageInfo: '만 19세 ~ 34세',
-      rqutPrdEnd: '2025-09-25',
-      rqutProcCn: '온라인 신청',
-      applUrl: 'https://job.seoul.go.kr',
-      sporCn: '교육비 전액 무료'
-    },
-    {
-      polyBizSjnm: `${districtName} 청년 문화 활동 지원`,
-      polyBizTy: '003002006',
-      polyBizCn: `${districtName} 거주 청년 대상 문화 활동비 지원. 연극, 영화, 전시 관람료 지원`,
-      ageInfo: '만 19세 ~ 39세',
-      rqutPrdEnd: '2025-09-20',
-      rqutProcCn: '온라인/오프라인',
-      applUrl: 'https://culture.seoul.go.kr',
-      sporCn: '연 20만원 문화바우처'
-    },
-    {
-      polyBizSjnm: `${districtName} 청년 건강검진 지원`,
-      polyBizTy: '003002008',
-      polyBizCn: `${districtName} 거주 청년 대상 종합 건강검진 지원. 기본 건강검진 및 정신건강 상담 제공`,
-      ageInfo: '만 20세 ~ 39세',
-      rqutPrdEnd: '상시',
-      rqutProcCn: '병원 방문',
-      applUrl: 'https://health.seoul.go.kr',
-      sporCn: '검진비 50% 지원'
-    }
+  // 구별로 다른 정책 세트 생성
+  const policyVariants = {
+    'Gangnam-gu': [
+      { title: 'IT 스타트업 인큐베이팅', cat: '003002002', amt: '월 100만원', end: '2025-10-15' },
+      { title: '청년 전세임대 특별공급', cat: '003002003', amt: '보증금 80%', end: '2025-09-25' },
+      { title: 'AI 개발자 부트캠프', cat: '003002001', amt: '전액무료', end: '2025-09-20' }
+    ],
+    'Seocho-gu': [
+      { title: '법무 청년창업 지원', cat: '003002002', amt: '사무실 제공', end: '2025-09-30' },
+      { title: '예술가 레지던시', cat: '003002006', amt: '작업실 무료', end: '2025-10-10' },
+      { title: 'IT 주거지원', cat: '003002003', amt: '월 50만원', end: '2025-09-28' }
+    ],
+    'Gangdong-gu': [
+      { title: '소상공인 창업자금', cat: '003002002', amt: '3000만원', end: '2025-09-25' },
+      { title: '공공임대 특별공급', cat: '003002003', amt: '시세 50%', end: '2025-10-20' },
+      { title: '일자리 매칭사업', cat: '003002001', amt: '취업금 100만', end: '2025-09-18' }
+    ],
+    'Mapo-gu': [
+      { title: '홍대 문화창업', cat: '003002006', amt: '공연장 지원', end: '2025-09-30' },
+      { title: '1인미디어 스튜디오', cat: '003002002', amt: '장비 무료', end: '2025-10-08' },
+      { title: '공유주택 입주', cat: '003002003', amt: '보증금 0원', end: '2025-09-26' }
+    ],
+    'default': [
+      { title: '청년창업 지원', cat: '003002002', amt: '창업자금', end: '2025-09-30' },
+      { title: '주거안정 지원', cat: '003002003', amt: '전월세 대출', end: '2025-10-15' },
+      { title: '취업역량 강화', cat: '003002001', amt: '교육 무료', end: '2025-09-25' }
+    ]
+  };
+  
+  const policies = policyVariants[districtKey] || policyVariants['default'];
+  
+  // 공통 정책 추가
+  const commonPolicies = [
+    { title: '청년 건강검진', cat: '003002008', amt: '검진 50%', end: '상시' },
+    { title: '정신건강 상담', cat: '003002009', amt: '월 4회 무료', end: '상시' }
   ];
   
-  return mockPolicies;
+  const allPolicies = [...policies, ...commonPolicies];
+  
+  return allPolicies.map(p => ({
+    polyBizSjnm: `${districtName} ${p.title}`,
+    polyBizTy: p.cat,
+    polyBizCn: `${districtName} 거주 청년 대상 ${p.title} 프로그램. ${p.amt} 지원`,
+    polyItcnCn: `${districtName} 거주 청년 대상 ${p.title} 프로그램. ${p.amt} 지원`,
+    ageInfo: p.cat === '003002001' ? '만 19세 ~ 34세' : '만 19세 ~ 39세',
+    rqutPrdEnd: p.end,
+    rqutProcCn: p.end === '상시' ? '방문 신청' : '온라인 신청',
+    applUrl: 'https://www.youthcenter.go.kr',
+    sporCn: p.amt
+  }));
 }
 
 // 캐시 설정 (5분)
@@ -167,32 +164,46 @@ function formatTarget(ageInfo, edubg) {
 
 // Youth Center API 호출
 async function fetchFromYouthCenter(districtCode, page = 1) {
+  // 현재 청년센터 API가 작동하지 않으므로 항상 Mock 데이터 반환
+  // TODO: API 복구 후 실제 데이터 연동
+  console.log('Youth Center API currently unavailable, using mock data');
+  return generateMockData(districtCode);
+  
+  /* 원래 코드 (API 복구시 사용)
   if (!process.env.YOUTHCENTER_API_KEY) {
     console.error('Youth Center API key not configured');
-    // 임시 목데이터 반환 (API 키가 없을 때)
     return generateMockData(districtCode);
   }
   
   try {
-    // 서울 전체 정책 가져오기 (구별 필터링은 클라이언트에서)
+    // 청년센터 openApiPolicyList.do 엔드포인트 사용
     const response = await axios.get('https://www.youthcenter.go.kr/opi/openApiPolicyList.do', {
       params: {
         apiKey: process.env.YOUTHCENTER_API_KEY,
-        display: 50,
+        display: 30,
         pageIndex: page,
-        srchPolyBizArea: '003002001001', // 서울 전체
-        bizTycdSel: '003002001,003002002,003002003,003002004,003002005,003002006,003002007,003002008,003002009,003002010'
+        srchPolyBizArea: districtCode, // 구별 코드
+        bizTycdSel: '003002001,003002002,003002003,003002004,003002005' // 정책 유형들
       },
-      timeout: 10000
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
     });
     
     const policies = response.data?.policyList || [];
+    
+    if (policies.length === 0) {
+      console.log('No policies found, using mock data');
+      return generateMockData(districtCode);
+    }
+    
     return policies;
   } catch (error) {
     console.error('Youth Center API error:', error.message);
-    // API 실패 시 목데이터 반환
     return generateMockData(districtCode);
   }
+  */
 }
 
 // 정책 데이터를 프론트엔드 형식으로 변환
