@@ -780,7 +780,17 @@ function analyzeIntent(message) {
     }
     
     let type = 'general';
-    if (message.includes('월세') || message.includes('주거') || message.includes('집')) {
+    
+    // Check for age-specific queries
+    if (message.includes('20대') || message.includes('20살') || message.includes('스무살') || message.includes('이십대')) {
+        type = 'age_20s';
+    } else if (message.includes('30대') || message.includes('30살') || message.includes('삼십대')) {
+        type = 'age_30s';
+    } else if (message.includes('필요한') || message.includes('추천') || message.includes('어떤')) {
+        if (message.includes('정책') || message.includes('지원')) {
+            type = 'recommendation';
+        }
+    } else if (message.includes('월세') || message.includes('주거') || message.includes('집')) {
         type = 'housing';
     } else if (message.includes('전세') || message.includes('전세자금')) {
         type = 'jeonse';
@@ -1040,6 +1050,111 @@ function generateResponse(intent, policies, originalMessage) {
     }
     
     switch (intent.type) {
+        case 'age_20s':
+        case 'recommendation':
+            message = '### 🎯 20대 청년에게 꼭 필요한 정책\n\n';
+            message += '20대 청년분들에게 가장 유용한 정책들을 소개해드립니다! 🚀\n\n';
+            
+            // Housing policies for 20s
+            const housingFor20s = policies.filter(p => 
+                (p.eligibility.includes('19') || p.eligibility.includes('18')) && 
+                (p.title.includes('월세') || p.title.includes('주거'))
+            ).slice(0, 2);
+            
+            if (housingFor20s.length > 0) {
+                message += '🏠 **주거 지원 (독립을 시작하는 20대)**\n\n';
+                housingFor20s.forEach(policy => {
+                    message += `🔹 **${policy.title}**\n`;
+                    message += `  • ${policy.description}\n`;
+                    message += `  • 지원금: ${policy.amount}\n`;
+                    message += `  • 자격: ${policy.eligibility}\n\n`;
+                });
+            }
+            
+            // Employment policies for 20s
+            const employmentFor20s = policies.filter(p => 
+                (p.eligibility.includes('19') || p.eligibility.includes('18')) && 
+                (p.title.includes('취업') || p.title.includes('구직') || p.title.includes('수당'))
+            ).slice(0, 2);
+            
+            if (employmentFor20s.length > 0) {
+                message += '💼 **취업/구직 지원 (첨 직장을 찾는 20대)**\n\n';
+                employmentFor20s.forEach(policy => {
+                    message += `🔹 **${policy.title}**\n`;
+                    message += `  • ${policy.description}\n`;
+                    message += `  • 지원금: ${policy.amount}\n`;
+                    message += `  • 자격: ${policy.eligibility}\n\n`;
+                });
+            }
+            
+            // Education support for 20s
+            const educationFor20s = policies.filter(p => 
+                p.title.includes('교육') || p.title.includes('학자금') || p.title.includes('장학')
+            ).slice(0, 1);
+            
+            if (educationFor20s.length > 0) {
+                message += '🎓 **교육 지원 (학업에 집중하는 20대)**\n\n';
+                educationFor20s.forEach(policy => {
+                    message += `🔹 **${policy.title}**\n`;
+                    message += `  • ${policy.description}\n`;
+                    message += `  • 지원금: ${policy.amount}\n\n`;
+                });
+            }
+            
+            message += '\n💡 **특별 TIP**\n';
+            message += '• 20대 초반(대학생): 교육 지원, 학자금 대출\n';
+            message += '• 20대 중반(취준생): 취업 지원, 구직활동 지원금\n';
+            message += '• 20대 후반(사회초년생): 주거 지원, 월세 보증금\n\n';
+            message += '🔗 더 자세한 정보는 **온라인 청년센터**(www.youthcenter.go.kr)를 방문해주세요!';
+            
+            followUpQuestions = [
+                '대학생을 위한 지원 정책은?',
+                '첨 취업하는 청년 지원은?',
+                '월세 지원 신청 방법은?'
+            ];
+            
+            // Add references
+            policies.slice(0, 5).forEach(policy => {
+                references.push({
+                    title: policy.title,
+                    url: policy.url || '#',
+                    snippet: `${policy.description} - ${policy.amount}`,
+                    phone: ''
+                });
+            });
+            break;
+            
+        case 'age_30s':
+            message = '### 🎯 30대 청년에게 추천하는 정책\n\n';
+            message += '30대 청년분들의 생활 안정을 위한 정책들을 소개합니다! 🌱\n\n';
+            
+            // Housing and family support for 30s
+            const housingFor30s = policies.filter(p => 
+                p.eligibility.includes('39') && 
+                (p.title.includes('주택') || p.title.includes('전세'))
+            ).slice(0, 2);
+            
+            if (housingFor30s.length > 0) {
+                message += '🏡 **주택 구입/전세 지원**\n\n';
+                housingFor30s.forEach(policy => {
+                    message += `🔹 **${policy.title}**\n`;
+                    message += `  • ${policy.description}\n`;
+                    message += `  • 지원금: ${policy.amount}\n\n`;
+                });
+            }
+            
+            message += '💡 **30대 맞춤 TIP**\n';
+            message += '• 주택 구입 준비: 전세자금 대출, 디딬런드 대출\n';
+            message += '• 경력 개발: 직무 전환 교육, 재취업 지원\n';
+            message += '• 창업 지원: 사업자금 대출, 창업 컨설팅\n';
+            
+            followUpQuestions = [
+                '30대 주택 구입 지원은?',
+                '경력 전환 프로그램은?',
+                '30대 창업 지원금은?'
+            ];
+            break;
+            
         case 'greeting':
             message = '안녕하세요! 유씨 AI 챗봇입니다. 😊\n\n청년 정책에 대한 궁금한 점을 물어보세요. 주거, 취업, 창업, 교육 등 다양한 분야의 정책 정보를 제공해드립니다.';
             followUpQuestions = [
