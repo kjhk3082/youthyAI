@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOUTHY AI Architecture Diagram</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        .diagram-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+        .legend {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+        .legend h3 {
+            margin-top: 0;
+        }
+        .legend-item {
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ YOUTHY AI System Architecture</h1>
+        
+        <div class="diagram-container">
+            <svg width="1200" height="900" viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
+                <!-- Background gradient -->
+                <defs>
+                    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
+                    </linearGradient>
+                    
+                    <!-- Arrow marker -->
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                    </marker>
+                </defs>
+                
+                <!-- Background -->
+                <rect width="1200" height="900" fill="url(#bgGradient)" />
+                
+                <!-- Layer 1: Frontend -->
+                <g id="frontend-layer">
+                    <rect x="50" y="50" width="1100" height="120" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="10"/>
+                    <text x="600" y="80" font-size="18" font-weight="bold" text-anchor="middle" fill="#1976d2">Frontend Layer</text>
+                    
+                    <!-- Components -->
+                    <rect x="100" y="100" width="200" height="50" fill="#bbdefb" stroke="#1565c0" stroke-width="2" rx="5"/>
+                    <text x="200" y="130" font-size="14" text-anchor="middle">웹 UI (HTML/CSS/JS)</text>
+                    
+                    <rect x="350" y="100" width="200" height="50" fill="#bbdefb" stroke="#1565c0" stroke-width="2" rx="5"/>
+                    <text x="450" y="130" font-size="14" text-anchor="middle">채팅 인터페이스</text>
+                    
+                    <rect x="600" y="100" width="200" height="50" fill="#bbdefb" stroke="#1565c0" stroke-width="2" rx="5"/>
+                    <text x="700" y="130" font-size="14" text-anchor="middle">Swagger UI</text>
+                    
+                    <rect x="850" y="100" width="250" height="50" fill="#bbdefb" stroke="#1565c0" stroke-width="2" rx="5"/>
+                    <text x="975" y="130" font-size="14" text-anchor="middle">정책 검색 / 필터 / TOP 10</text>
+                </g>
+                
+                <!-- Layer 2: API Gateway -->
+                <g id="api-layer">
+                    <rect x="50" y="200" width="1100" height="120" fill="#fff3e0" stroke="#ff6f00" stroke-width="2" rx="10"/>
+                    <text x="600" y="230" font-size="18" font-weight="bold" text-anchor="middle" fill="#ff6f00">API Gateway Layer</text>
+                    
+                    <rect x="200" y="250" width="300" height="50" fill="#ffe0b2" stroke="#f57c00" stroke-width="2" rx="5"/>
+                    <text x="350" y="270" font-size="14" text-anchor="middle">Chatbot Server :3000</text>
+                    <text x="350" y="290" font-size="12" text-anchor="middle" fill="#666">/api/chat, /api/popular-policies</text>
+                    
+                    <rect x="700" y="250" width="300" height="50" fill="#ffe0b2" stroke="#f57c00" stroke-width="2" rx="5"/>
+                    <text x="850" y="270" font-size="14" text-anchor="middle">District API Server :3001</text>
+                    <text x="850" y="290" font-size="12" text-anchor="middle" fill="#666">/api/district-policies, /api/special-top10</text>
+                </g>
+                
+                <!-- Layer 3: Service Layer -->
+                <g id="service-layer">
+                    <rect x="50" y="350" width="1100" height="120" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="10"/>
+                    <text x="600" y="380" font-size="18" font-weight="bold" text-anchor="middle" fill="#7b1fa2">Service Layer</text>
+                    
+                    <rect x="100" y="400" width="220" height="50" fill="#e1bee7" stroke="#6a1b9a" stroke-width="2" rx="5"/>
+                    <text x="210" y="420" font-size="14" text-anchor="middle">YouthPolicyService</text>
+                    <text x="210" y="440" font-size="11" text-anchor="middle" fill="#666">청년정책 추천</text>
+                    
+                    <rect x="350" y="400" width="220" height="50" fill="#e1bee7" stroke="#6a1b9a" stroke-width="2" rx="5"/>
+                    <text x="460" y="420" font-size="14" text-anchor="middle">DistrictPolicyService</text>
+                    <text x="460" y="440" font-size="11" text-anchor="middle" fill="#666">구별 정책 관리</text>
+                    
+                    <rect x="600" y="400" width="220" height="50" fill="#e1bee7" stroke="#6a1b9a" stroke-width="2" rx="5"/>
+                    <text x="710" y="420" font-size="14" text-anchor="middle">PopularPolicyService</text>
+                    <text x="710" y="440" font-size="11" text-anchor="middle" fill="#666">인기 정책 분석</text>
+                    
+                    <rect x="850" y="400" width="220" height="50" fill="#e1bee7" stroke="#6a1b9a" stroke-width="2" rx="5"/>
+                    <text x="960" y="420" font-size="14" text-anchor="middle">DataCleaningService</text>
+                    <text x="960" y="440" font-size="11" text-anchor="middle" fill="#666">데이터 정리</text>
+                </g>
+                
+                <!-- Layer 4: Data Processing -->
+                <g id="processing-layer">
+                    <rect x="50" y="500" width="1100" height="120" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="10"/>
+                    <text x="600" y="530" font-size="18" font-weight="bold" text-anchor="middle" fill="#2e7d32">Data Processing Layer</text>
+                    
+                    <rect x="150" y="550" width="250" height="50" fill="#c8e6c9" stroke="#388e3c" stroke-width="2" rx="5"/>
+                    <text x="275" y="570" font-size="14" text-anchor="middle">Real Policy Fetcher</text>
+                    <text x="275" y="590" font-size="11" text-anchor="middle" fill="#666">GET method, API 호출</text>
+                    
+                    <rect x="450" y="550" width="250" height="50" fill="#c8e6c9" stroke="#388e3c" stroke-width="2" rx="5"/>
+                    <text x="575" y="570" font-size="14" text-anchor="middle">Data Transformer</text>
+                    <text x="575" y="590" font-size="11" text-anchor="middle" fill="#666">날짜/설명 변환, 'ㅇ' 제거</text>
+                    
+                    <rect x="750" y="550" width="250" height="50" fill="#c8e6c9" stroke="#388e3c" stroke-width="2" rx="5"/>
+                    <text x="875" y="570" font-size="14" text-anchor="middle">Cache Manager</text>
+                    <text x="875" y="590" font-size="11" text-anchor="middle" fill="#666">5분 TTL, In-memory</text>
+                </g>
+                
+                <!-- External API -->
+                <g id="external-api">
+                    <rect x="100" y="680" width="300" height="80" fill="#fce4ec" stroke="#c2185b" stroke-width="3" rx="10"/>
+                    <text x="250" y="710" font-size="16" font-weight="bold" text-anchor="middle" fill="#c2185b">온통청년 API</text>
+                    <text x="250" y="735" font-size="13" text-anchor="middle" fill="#666">youthcenter.go.kr</text>
+                    <text x="250" y="755" font-size="11" text-anchor="middle" fill="#888">실시간 정책 데이터</text>
+                </g>
+                
+                <!-- Data Storage -->
+                <g id="storage">
+                    <rect x="500" y="680" width="250" height="80" fill="#f5f5f5" stroke="#616161" stroke-width="2" rx="10"/>
+                    <text x="625" y="710" font-size="16" font-weight="bold" text-anchor="middle" fill="#616161">Local JSON DB</text>
+                    <text x="625" y="735" font-size="13" text-anchor="middle" fill="#666">Fallback Data</text>
+                    <text x="625" y="755" font-size="11" text-anchor="middle" fill="#888">API 실패 시 사용</text>
+                    
+                    <rect x="800" y="680" width="250" height="80" fill="#f5f5f5" stroke="#616161" stroke-width="2" rx="10"/>
+                    <text x="925" y="710" font-size="16" font-weight="bold" text-anchor="middle" fill="#616161">In-Memory Cache</text>
+                    <text x="925" y="735" font-size="13" text-anchor="middle" fill="#666">5분 TTL</text>
+                    <text x="925" y="755" font-size="11" text-anchor="middle" fill="#888">성능 최적화</text>
+                </g>
+                
+                <!-- Arrows showing data flow -->
+                <g id="arrows">
+                    <!-- Frontend to API -->
+                    <line x1="450" y1="150" x2="350" y2="250" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="700" y1="150" x2="850" y2="250" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    
+                    <!-- API to Service -->
+                    <line x1="350" y1="300" x2="210" y2="400" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="850" y1="300" x2="460" y2="400" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="850" y1="300" x2="710" y2="400" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    
+                    <!-- Service to Processing -->
+                    <line x1="210" y1="450" x2="275" y2="550" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="460" y1="450" x2="275" y2="550" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="710" y1="450" x2="575" y2="550" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="960" y1="450" x2="575" y2="550" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    
+                    <!-- Processing to External/Storage -->
+                    <line x1="275" y1="600" x2="250" y2="680" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="575" y1="600" x2="625" y2="680" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="875" y1="600" x2="925" y2="680" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                </g>
+                
+                <!-- PM2 Process Management -->
+                <g id="pm2">
+                    <rect x="950" y="800" width="200" height="60" fill="#e0f2f1" stroke="#00695c" stroke-width="2" rx="10"/>
+                    <text x="1050" y="825" font-size="14" font-weight="bold" text-anchor="middle" fill="#00695c">PM2 Manager</text>
+                    <text x="1050" y="845" font-size="11" text-anchor="middle" fill="#666">프로세스 관리</text>
+                </g>
+            </svg>
+        </div>
+        
+        <div class="legend">
+            <h3>🎨 범례</h3>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #e3f2fd; border: 1px solid #1976d2;"></span>
+                Frontend Layer - 사용자 인터페이스
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #fff3e0; border: 1px solid #ff6f00;"></span>
+                API Gateway - API 서버
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #f3e5f5; border: 1px solid #7b1fa2;"></span>
+                Service Layer - 비즈니스 로직
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #e8f5e9; border: 1px solid #2e7d32;"></span>
+                Data Processing - 데이터 처리
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #fce4ec; border: 1px solid #c2185b;"></span>
+                External API - 외부 API
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #f5f5f5; border: 1px solid #616161;"></span>
+                Storage - 데이터 저장소
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #f0f7ff; border-radius: 10px;">
+            <h3>📋 주요 특징</h3>
+            <ul>
+                <li><strong>마이크로서비스 아키텍처</strong>: 채팅봇과 API 서버 분리 운영</li>
+                <li><strong>캐싱 전략</strong>: 5분 TTL로 API 호출 최적화</li>
+                <li><strong>Fallback 메커니즘</strong>: 외부 API 장애 시 로컬 데이터 사용</li>
+                <li><strong>데이터 정제</strong>: 날짜 포맷팅, 설명 정리 등 자동 처리</li>
+                <li><strong>실시간 통합</strong>: 온통청년 API와 실시간 연동</li>
+                <li><strong>PM2 프로세스 관리</strong>: 안정적인 서비스 운영</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
