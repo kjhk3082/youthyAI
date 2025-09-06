@@ -870,10 +870,17 @@ function generateResponseWithEnhancedInfo(intent, policies, originalMessage, enh
     references = basicResponse.references || [];
     followUpQuestions = basicResponse.followUpQuestions || [];
     
-    // Add real-time information from Tavily if available
+    // Add real-time information from Tavily if available (Korean only)
     if (enhancedInfo.realTimeInfo?.answer) {
-        message += '\n\n### 🔍 최신 정보\n';
-        message += enhancedInfo.realTimeInfo.answer + '\n';
+        // Check if the answer is in Korean (contains Korean characters)
+        const hasKorean = /[가-힣]/.test(enhancedInfo.realTimeInfo.answer);
+        const hasTooMuchEnglish = /[a-zA-Z]{20,}/.test(enhancedInfo.realTimeInfo.answer);
+        
+        // Only include if it's Korean or mixed (not pure English)
+        if (hasKorean && !hasTooMuchEnglish) {
+            message += '\n\n### 🔍 최신 정보\n';
+            message += enhancedInfo.realTimeInfo.answer + '\n';
+        }
         
         // Add Tavily search results as references
         if (enhancedInfo.realTimeInfo.results) {

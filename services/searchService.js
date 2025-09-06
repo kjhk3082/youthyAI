@@ -26,7 +26,7 @@ class SearchService {
                 },
                 body: JSON.stringify({
                     api_key: this.tavilyApiKey,
-                    query: `청년 정책 ${query} 2024 2025`,
+                    query: `한국 청년 정책 ${query} 2024 2025 지원 혜택`,
                     search_depth: 'advanced',
                     include_answer: true,
                     include_images: false,
@@ -38,7 +38,9 @@ class SearchService {
                         'www.gov.kr',
                         'www.moel.go.kr',
                         'www.molit.go.kr'
-                    ]
+                    ],
+                    search_lang: 'ko',
+                    answer_lang: 'ko'
                 })
             });
 
@@ -48,8 +50,18 @@ class SearchService {
             }
 
             const data = await response.json();
+            
+            // Translate or filter English content
+            let answer = data.answer;
+            
+            // If answer is in English, provide Korean context
+            if (answer && /[a-zA-Z]{10,}/.test(answer) && !/[가-힣]/.test(answer)) {
+                // Answer is mostly English, skip it or provide Korean alternative
+                answer = null;
+            }
+            
             return {
-                answer: data.answer,
+                answer: answer,
                 results: data.results?.map(r => ({
                     title: r.title,
                     content: r.content,
