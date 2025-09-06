@@ -781,14 +781,39 @@ function analyzeIntent(message) {
     
     let type = 'general';
     
+    // Check for specific age mentions (18-39)
+    const ageMatch = message.match(/(\d{2})살|난\s*(\d{2})|저\s*(\d{2})|\b(\d{2})년생/);
+    if (ageMatch) {
+        const age = parseInt(ageMatch[1] || ageMatch[2] || ageMatch[3] || ageMatch[4]);
+        if (age >= 18 && age <= 29) {
+            type = 'age_20s';
+        } else if (age >= 30 && age <= 39) {
+            type = 'age_30s';
+        }
+    }
+    
     // Check for age-specific queries
-    if (message.includes('20대') || message.includes('20살') || message.includes('스무살') || message.includes('이십대')) {
-        type = 'age_20s';
-    } else if (message.includes('30대') || message.includes('30살') || message.includes('삼십대')) {
-        type = 'age_30s';
+    if (type === 'general') {
+        if (message.includes('20대') || message.includes('20살') || message.includes('스무살') || message.includes('이십대')) {
+            type = 'age_20s';
+        } else if (message.includes('30대') || message.includes('30살') || message.includes('삼십대')) {
+            type = 'age_30s';
+        }
+    }
+    
+    // Check for personalized queries
+    if ((message.includes('나') || message.includes('저') || message.includes('내가')) && 
+        (message.includes('맞는') || message.includes('필요') || message.includes('받을'))) {
+        if (message.includes('정책') || message.includes('지원') || message.includes('혜택')) {
+            if (type === 'general') {
+                type = 'personal_recommendation';
+            }
+        }
     } else if (message.includes('필요한') || message.includes('추천') || message.includes('어떤')) {
         if (message.includes('정책') || message.includes('지원')) {
-            type = 'recommendation';
+            if (type === 'general') {
+                type = 'recommendation';
+            }
         }
     } else if (message.includes('월세') || message.includes('주거') || message.includes('집')) {
         type = 'housing';
@@ -1051,39 +1076,81 @@ function generateResponse(intent, policies, originalMessage) {
     
     switch (intent.type) {
         case 'age_20s':
+        case 'personal_recommendation':
         case 'recommendation':
-            message = '### 🎯 20대 청년에게 꼭 필요한 정책\n\n';
-            message += '20대 청년분들에게 가장 유용한 정책들을 소개해드립니다! 🚀\n\n';
+            // Extract age if mentioned
+            const ageMatch = message.match(/(\d{2})살/);
+            const specificAge = ageMatch ? parseInt(ageMatch[1]) : null;
             
-            // Housing policies for 20s
+            if (specificAge) {
+                message = `### 🎯 ${specificAge}살 청년에게 딱 맞는 정책\n\n`;
+                message += `${specificAge}살이시군요! 당신에게 꼭 필요한 정책들을 소개해드릴게요 😊\n\n`;
+                
+                // Age-specific tips
+                if (specificAge >= 19 && specificAge <= 22) {
+                    message += '📖 **현재 상황**: 대학생 또는 취업 준비 초기 단계\n';
+                } else if (specificAge >= 23 && specificAge <= 26) {
+                    message += '💼 **현재 상황**: 취업 준비 또는 사회초년생\n';
+                } else if (specificAge >= 27 && specificAge <= 29) {
+                    message += '🌱 **현재 상황**: 경력 개발 및 자산 형성 시기\n';
+                }
+                message += '\n';
+            } else {
+                message = '### 🎯 20대 청년에게 꼭 필요한 정책\n\n';
+                message += '20대 청년분들에게 가장 유용한 정책들을 소개해드립니다! 🚀\n\n';
+            }
+            
+            // Filter policies based on specific age if provided
+            const filterByAge = (policy, age = 25) => {
+                // Check if the age falls within the policy's eligibility range
+                const eligibility = policy.eligibility.toLowerCase();
+                
+                // Common patterns: "만 19-34세", "18-39세", etc.
+                const rangeMatch = eligibility.match(/만?\s*(\d+)[~\-](\d+)세/);
+                if (rangeMatch) {
+                    const minAge = parseInt(rangeMatch[1]);
+                    const maxAge = parseInt(rangeMatch[2]);
+                    return age >= minAge && age <= maxAge;
+                }
+                
+                // If no specific range, check for general youth policies
+                return eligibility.includes('청년') || 
+                       eligibility.includes('19') || 
+                       eligibility.includes('34') ||
+                       eligibility.includes('39');
+            };
+            
+            const targetAge = specificAge || 25;
+            
+            // Housing policies for the specific age
             const housingFor20s = policies.filter(p => 
-                (p.eligibility.includes('19') || p.eligibility.includes('18')) && 
+                filterByAge(p, targetAge) && 
                 (p.title.includes('월세') || p.title.includes('주거'))
-            ).slice(0, 2);
+            ).slice(0, 3);
             
             if (housingFor20s.length > 0) {
-                message += '🏠 **주거 지원 (독립을 시작하는 20대)**\n\n';
-                housingFor20s.forEach(policy => {
-                    message += `🔹 **${policy.title}**\n`;
-                    message += `  • ${policy.description}\n`;
-                    message += `  • 지원금: ${policy.amount}\n`;
-                    message += `  • 자격: ${policy.eligibility}\n\n`;
+                message += '🏠 **주거 지원 (독립을 준비하는 청년)**\n\n';
+                housingFor20s.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원금: **${policy.amount}**\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
                 });
             }
             
-            // Employment policies for 20s
+            // Employment policies for the specific age
             const employmentFor20s = policies.filter(p => 
-                (p.eligibility.includes('19') || p.eligibility.includes('18')) && 
+                filterByAge(p, targetAge) && 
                 (p.title.includes('취업') || p.title.includes('구직') || p.title.includes('수당'))
-            ).slice(0, 2);
+            ).slice(0, 3);
             
             if (employmentFor20s.length > 0) {
-                message += '💼 **취업/구직 지원 (첨 직장을 찾는 20대)**\n\n';
-                employmentFor20s.forEach(policy => {
-                    message += `🔹 **${policy.title}**\n`;
-                    message += `  • ${policy.description}\n`;
-                    message += `  • 지원금: ${policy.amount}\n`;
-                    message += `  • 자격: ${policy.eligibility}\n\n`;
+                message += '💼 **취업/구직 지원**\n\n';
+                employmentFor20s.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원금: **${policy.amount}**\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
                 });
             }
             
@@ -1101,11 +1168,23 @@ function generateResponse(intent, policies, originalMessage) {
                 });
             }
             
-            message += '\n💡 **특별 TIP**\n';
-            message += '• 20대 초반(대학생): 교육 지원, 학자금 대출\n';
-            message += '• 20대 중반(취준생): 취업 지원, 구직활동 지원금\n';
-            message += '• 20대 후반(사회초년생): 주거 지원, 월세 보증금\n\n';
-            message += '🔗 더 자세한 정보는 **온라인 청년센터**(www.youthcenter.go.kr)를 방문해주세요!';
+            // Add personalized tips based on age
+            if (specificAge === 25) {
+                message += '\n🎆 **25살 특별 팁!**\n';
+                message += '• 딱 중간 나이! 취업과 주거 모두 신경쓸 때\n';
+                message += '• 청년수당, 구직활동 지원금 받을 수 있는 황금기!\n';
+                message += '• 월세 지원부터 취업 지원까지 폭넓게 활용 가능\n\n';
+            } else {
+                message += '\n💡 **연령별 꼭 필요한 지원**\n';
+                message += '• 19-22살: 학자금 대출, 교육 훈련 지원\n';
+                message += '• 23-26살: 취업 지원, 구직활동 지원금\n';
+                message += '• 27-29살: 주거 지원, 창업 지원금\n\n';
+            }
+            
+            message += '🔍 **더 많은 정책 찾기**\n';
+            message += '• 온라인 청년센터: www.youthcenter.go.kr\n';
+            message += '• 우리 지역 청년센터 방문하기\n';
+            message += '• 1357 청년전화로 상담받기';
             
             followUpQuestions = [
                 '대학생을 위한 지원 정책은?',
@@ -1427,21 +1506,59 @@ function generateResponse(intent, policies, originalMessage) {
             break;
             
         default:
+            // Check if user is asking about their age/personal situation
+            const hasPersonalContext = originalMessage.includes('나') || originalMessage.includes('저') || 
+                                      originalMessage.includes('내가') || /\d{2}살/.test(originalMessage);
+            
             if (policies.length > 0) {
-                message = '관련 정책을 찾아드렸습니다:\n\n';
-                policies.forEach((policy, index) => {
+                if (hasPersonalContext) {
+                    message = '🎈 **당신에게 맞는 정책을 찾았어요!**\n\n';
+                } else {
+                    message = '🔍 **관련 정책을 찾아드렸습니다**\n\n';
+                }
+                
+                // Show top 5 most relevant policies
+                policies.slice(0, 5).forEach((policy, index) => {
                     message += `${index + 1}. **${policy.title}**\n`;
-                    message += `   • ${policy.description}\n`;
-                    message += `   • 지원내용: ${policy.amount}\n\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원: ${policy.amount}\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
                     
                     references.push({
                         title: policy.title,
-                        url: policy.url,
-                        snippet: policy.description
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`
                     });
                 });
+                
+                message += '\n💡 **더 많은 정책이 궁금하신가요?**\n';
+                message += '위 정책들 중 관심 있는 것을 클릭하거나 추가 질문해주세요!';
+                
+                followUpQuestions = [
+                    '이 중에서 신청 방법 알려주세요',
+                    '필요 서류가 뭐가 있나요?',
+                    '신청 기간은 언제인가요?'
+                ];
             } else {
-                message = '죄송합니다. "' + originalMessage + '"에 대한 정확한 정보를 찾지 못했습니다.\n\n다음과 같은 주제로 질문해보세요:\n• 주거 지원 (월세, 전세)\n• 취업 지원 (인턴십, 교육)\n• 창업 지원 (자금, 공간)\n• 교육 지원 (학자금, 자격증)';
+                // More friendly fallback message
+                if (hasPersonalContext) {
+                    message = '🤔 **지금 바로 답변드릴 수 있는 정보가 없네요**\n\n';
+                    message += '하지만 걸정마세요! 다음과 같이 질문해보세요:\n\n';
+                    message += '🏠 **주거 관련**: "월세 지원 받을 수 있나요?"\n';
+                    message += '💼 **취업 관련**: "취업 준비 지원금 있나요?"\n';
+                    message += '🚀 **창업 관련**: "창업 지원금 어떻게 받나요?"\n';
+                    message += '🎓 **교육 관련**: "학자금 대출 조건 알려주세요"\n\n';
+                    message += '💬 또는 지역명을 포함해서 질문해주세요!\n';
+                    message += '예) "서울 청년 월세 지원", "강원도 취업 지원"';
+                } else {
+                    message = '죄송합니다. "' + originalMessage + '"에 대한 정확한 정보를 찾지 못했습니다.\n\n';
+                    message += '다음과 같은 주제로 질문해보세요:\n';
+                    message += '• 주거 지원 (월세, 전세)\n';
+                    message += '• 취업 지원 (인턴십, 교육)\n';
+                    message += '• 창업 지원 (자금, 공간)\n';
+                    message += '• 교육 지원 (학자금, 자격증)';
+                }
+                
                 followUpQuestions = [
                     '청년 정책 전체 보기',
                     '나에게 맞는 정책 찾기',
