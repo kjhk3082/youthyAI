@@ -304,26 +304,41 @@ function generateResponse(intent, policies, originalMessage) {
             break;
             
         case 'housing':
-            if (policies.length > 0) {
-                message = '주거 관련 청년 정책을 찾아드렸습니다:\n\n';
-                policies.forEach((policy, index) => {
-                    message += `${index + 1}. **${policy.title}**\n`;
-                    message += `   • ${policy.description}\n`;
-                    message += `   • 지원금액: ${policy.amount}\n`;
-                    message += `   • 자격조건: ${policy.eligibility}\n\n`;
-                    
-                    references.push({
-                        title: policy.title,
-                        url: policy.url,
-                        snippet: policy.description
-                    });
+            // Only show housing-related policies
+            const housingPolicies = policyDatabase.housing || [];
+            
+            message = '### 🏠 청년 주거 지원 정책\n\n';
+            message += '청년 주거 안정을 위한 다양한 지원 정책을 안내해드립니다.\n\n';
+            
+            housingPolicies.forEach((policy) => {
+                message += `📍 **${policy.title}**\n`;
+                message += `${policy.description}\n\n`;
+                message += `• **지원금액**: ${policy.amount}\n`;
+                message += `• **자격조건**: ${policy.eligibility}\n`;
+                message += `• **신청방법**: 온라인 또는 방문 신청\n`;
+                if (policy.url) {
+                    message += `• **문의처**: ${policy.url}\n`;
+                }
+                message += '\n---\n\n';
+                
+                references.push({
+                    title: policy.title,
+                    url: policy.url,
+                    snippet: policy.description + ' [' + policy.amount + ']'
                 });
-                followUpQuestions = [
-                    '신청 방법이 궁금해요',
-                    '필요 서류는 뭔가요?',
-                    '다른 지원과 중복 가능한가요?'
-                ];
-            }
+            });
+            
+            // Add related housing support info
+            message += '💡 **추가 정보**\n';
+            message += '• 서울시 청년주거포털: youth.seoul.go.kr/housing\n';
+            message += '• 청년전세임대: 전화 1600-1004\n';
+            message += '• LH 청년주택: 전화 1600-1004\n';
+            
+            followUpQuestions = [
+                '월세 지원 신청 방법 자세히 알려주세요',
+                '전세자금 대출 조건이 궁금해요',
+                '청년 공공임대주택 신청하려면?'
+            ];
             break;
             
         case 'employment':
@@ -350,11 +365,15 @@ function generateResponse(intent, policies, originalMessage) {
             break;
             
         case 'popular':
-            message = '🏆 **인기 있는 청년 정책 TOP 5**\n\n';
-            message += '1. **서울시 청년 월세 지원** ⭐⭐⭐⭐⭐\n';
-            message += '   • 월 최대 20만원 지원 (최대 12개월)\n';
-            message += '   • 만 19-39세 무주택 청년\n';
-            message += '   • 신청자 가장 많은 인기 정책\n\n';
+            message = '### 🔥 지금 가장 핫한 청년 정책\n\n';
+            message += '2024년 청년들이 가장 많이 찾는 인기 정책을 소개합니다!\n\n';
+            
+            message += '**1. 🏠 서울시 청년 월세 지원** ⭐⭐⭐⭐⭐\n';
+            message += '월 최대 20만원을 12개월간 지원하는 대표 주거 정책입니다.\n';
+            message += '• **지원대상**: 만 19-39세 무주택 청년\n';
+            message += '• **소득기준**: 중위소득 150% 이하\n';
+            message += '• **임차조건**: 보증금 5천만원, 월세 60만원 이하\n';
+            message += '• 📞 문의: 02-2133-6587\n\n';
             
             message += '2. **청년 전세자금 대출** ⭐⭐⭐⭐⭐\n';
             message += '   • 최대 2억원 저금리 대출\n';
@@ -366,10 +385,12 @@ function generateResponse(intent, policies, originalMessage) {
             message += '   • 정규직 전환 기회\n';
             message += '   • 취업 성공률 80% 이상\n\n';
             
-            message += '4. **청년 창업 지원금** ⭐⭐⭐⭐\n';
-            message += '   • 최대 1억원 지원\n';
-            message += '   • 사무실 및 멘토링 제공\n';
-            message += '   • 성공 창업 사례 다수\n\n';
+            message += '4. **🚀 청년 창업 지원금** ⭐⭐⭐⭐\n';
+            message += '예비창업자와 초기창업자를 위한 든든한 지원!\n';
+            message += '• **지원금액**: 최대 1억원\n';
+            message += '• **지원내용**: 사업화 자금, 사무실, 멘토링\n';
+            message += '• **대상**: 만 39세 이하, 창업 3년 이내\n';
+            message += '• 📞 문의: 1357 (창업진흥원)\n\n';
             
             message += '5. **청년수당** ⭐⭐⭐\n';
             message += '   • 월 50만원 현금 지원\n';
@@ -380,8 +401,7 @@ function generateResponse(intent, policies, originalMessage) {
             
             references = [
                 { title: '서울시 청년포털', url: 'https://youth.seoul.go.kr', snippet: '서울시 청년정책 종합 안내' },
-                { title: '청년정책 통합 플랫폼', url: 'https://www.youthcenter.go.kr', snippet: '전국 청년정책 한눈에 보기' },
-                { title: '온라인 청년센터', url: 'https://www.youthcenter.go.kr', snippet: '청년정책 원스톱 서비스' }
+                { title: '온통청년', url: 'https://www.youthcenter.go.kr', snippet: '전국 청년정책 통합 검색' }
             ];
             
             followUpQuestions = [

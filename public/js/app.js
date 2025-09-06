@@ -17,30 +17,7 @@ class YouthyChat {
         this.hasMessages = false;
         this.scrapedMessages = this.loadScrapedMessages();
         this.messageIdCounter = 0;
-        
-        // Policy poster data
-        this.policyPosters = {
-            '월세지원': {
-                title: '청년 월세 지원',
-                image: '/images/posters/monthly_rent_support.jpg',
-                description: '만 19-39세 청년 월 최대 20만원 지원'
-            },
-            '전세대출': {
-                title: '청년 전세자금 대출',
-                image: '/images/posters/lease_loan.jpg',
-                description: '최대 2억원 저금리 대출'
-            },
-            '창업지원': {
-                title: '청년 창업 지원금',
-                image: '/images/posters/startup_support.jpg',
-                description: '최대 1억원 창업 지원'
-            },
-            '취업지원': {
-                title: '청년 취업 프로그램',
-                image: '/images/posters/job_program.jpg',
-                description: '인턴십 및 직업훈련 제공'
-            }
-        };
+        this.userInfo = this.loadUserInfo();
         
         this.init();
     }
@@ -63,10 +40,11 @@ class YouthyChat {
             });
         });
 
-        // Action Cards
-        this.actionCards.forEach((card, index) => {
-            card.addEventListener('click', () => {
-                this.handleActionCard(index);
+        // Action Cards with new actions
+        this.actionCards.forEach((card) => {
+            card.addEventListener('click', (e) => {
+                const action = e.currentTarget.dataset.action;
+                this.handleActionCard(action);
             });
         });
 
@@ -77,66 +55,218 @@ class YouthyChat {
             });
         }
 
-        // Chat container scroll event
-        if (this.chatContainer) {
-            this.chatContainer.addEventListener('scroll', () => {
-                this.handleScroll();
-            });
-        }
-
         // Clear messages and show welcome
         this.clearMessages();
-    }
-
-    handleScroll() {
-        const scrollTop = this.chatContainer.scrollTop;
-        
-        // Add scrolled class to welcome sections when scrolled down
-        if (scrollTop > 50) {
-            this.welcomeSection?.classList.add('scrolled');
-            this.actionCardsSection?.classList.add('scrolled');
-            this.suggestionsSection?.classList.add('scrolled');
-        } else {
-            this.welcomeSection?.classList.remove('scrolled');
-            this.actionCardsSection?.classList.remove('scrolled');
-            this.suggestionsSection?.classList.remove('scrolled');
-        }
     }
 
     clearMessages() {
         this.chatMessages.innerHTML = '';
         this.hasMessages = false;
+        this.showWelcomeContent();
     }
 
-    fadeWelcomeContent() {
-        // Fade welcome section when first message is sent
+    hideWelcomeContent() {
         if (!this.hasMessages) {
-            this.welcomeSection?.classList.add('scrolled');
-            this.actionCardsSection?.classList.add('scrolled');
-            this.suggestionsSection?.classList.add('scrolled');
+            this.welcomeSection?.classList.add('minimized');
+            this.actionCardsSection?.classList.add('minimized');
+            this.suggestionsSection?.classList.add('minimized');
             this.hasMessages = true;
+            
+            // Ensure messages area is scrollable
+            setTimeout(() => {
+                this.chatMessages.style.minHeight = 'calc(100vh - 200px)';
+            }, 300);
         }
     }
 
-    handleActionCard(index) {
-        const actions = [
-            '청년 정책을 찾아주세요',
-            '나에게 맞는 정책을 추천해주세요',
-            '유씨 메뉴를 보여주세요'
+    showWelcomeContent() {
+        this.welcomeSection?.classList.remove('minimized');
+        this.actionCardsSection?.classList.remove('minimized');
+        this.suggestionsSection?.classList.remove('minimized');
+        this.chatMessages.style.minHeight = '200px';
+    }
+
+    handleActionCard(action) {
+        switch(action) {
+            case 'hot-policies':
+                this.chatInput.value = '지금 가장 인기있는 청년 정책을 알려주세요';
+                this.sendMessage();
+                break;
+            case 'personalized':
+                this.showUserInfoModal();
+                break;
+            case 'quick-questions':
+                this.showQuickQuestions();
+                break;
+        }
+    }
+
+    showQuickQuestions() {
+        const questions = [
+            '청년 월세 지원 신청 방법은?',
+            '전세자금 대출 조건이 어떻게 되나요?',
+            '청년수당 받을 수 있는지 확인하고 싶어요',
+            '취업 준비생을 위한 지원이 있나요?',
+            '청년 창업 지원금은 어떻게 받나요?'
         ];
         
-        if (actions[index]) {
-            this.chatInput.value = actions[index];
-            this.sendMessage();
+        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+        this.chatInput.value = randomQuestion;
+        this.chatInput.focus();
+    }
+
+    showUserInfoModal() {
+        let modal = document.getElementById('userInfoModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'userInfoModal';
+            modal.className = 'user-info-modal';
+            document.body.appendChild(modal);
         }
+        
+        modal.innerHTML = `
+            <div class="user-info-content">
+                <div class="user-info-header">
+                    <h3 class="user-info-title">🎯 맞춤 정책 찾기</h3>
+                    <p class="user-info-subtitle">정보를 입력하시면 더 정확한 맞춤 정책을 추천해드립니다</p>
+                </div>
+                <div class="user-info-body">
+                    <div class="form-group">
+                        <label class="form-label">나이</label>
+                        <input type="number" class="form-input" id="userAge" placeholder="예: 25" 
+                               value="${this.userInfo?.age || ''}" min="19" max="39">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">거주 지역</label>
+                        <select class="form-select" id="userRegion">
+                            <option value="">선택하세요</option>
+                            <option value="서울" ${this.userInfo?.region === '서울' ? 'selected' : ''}>서울</option>
+                            <option value="경기" ${this.userInfo?.region === '경기' ? 'selected' : ''}>경기</option>
+                            <option value="인천" ${this.userInfo?.region === '인천' ? 'selected' : ''}>인천</option>
+                            <option value="부산" ${this.userInfo?.region === '부산' ? 'selected' : ''}>부산</option>
+                            <option value="대구" ${this.userInfo?.region === '대구' ? 'selected' : ''}>대구</option>
+                            <option value="대전" ${this.userInfo?.region === '대전' ? 'selected' : ''}>대전</option>
+                            <option value="광주" ${this.userInfo?.region === '광주' ? 'selected' : ''}>광주</option>
+                            <option value="울산" ${this.userInfo?.region === '울산' ? 'selected' : ''}>울산</option>
+                            <option value="세종" ${this.userInfo?.region === '세종' ? 'selected' : ''}>세종</option>
+                            <option value="강원" ${this.userInfo?.region === '강원' ? 'selected' : ''}>강원</option>
+                            <option value="충북" ${this.userInfo?.region === '충북' ? 'selected' : ''}>충북</option>
+                            <option value="충남" ${this.userInfo?.region === '충남' ? 'selected' : ''}>충남</option>
+                            <option value="전북" ${this.userInfo?.region === '전북' ? 'selected' : ''}>전북</option>
+                            <option value="전남" ${this.userInfo?.region === '전남' ? 'selected' : ''}>전남</option>
+                            <option value="경북" ${this.userInfo?.region === '경북' ? 'selected' : ''}>경북</option>
+                            <option value="경남" ${this.userInfo?.region === '경남' ? 'selected' : ''}>경남</option>
+                            <option value="제주" ${this.userInfo?.region === '제주' ? 'selected' : ''}>제주</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">현재 상태</label>
+                        <select class="form-select" id="userStatus">
+                            <option value="">선택하세요</option>
+                            <option value="대학생" ${this.userInfo?.status === '대학생' ? 'selected' : ''}>대학생</option>
+                            <option value="대학원생" ${this.userInfo?.status === '대학원생' ? 'selected' : ''}>대학원생</option>
+                            <option value="취업준비생" ${this.userInfo?.status === '취업준비생' ? 'selected' : ''}>취업준비생</option>
+                            <option value="직장인" ${this.userInfo?.status === '직장인' ? 'selected' : ''}>직장인</option>
+                            <option value="창업준비" ${this.userInfo?.status === '창업준비' ? 'selected' : ''}>창업준비</option>
+                            <option value="프리랜서" ${this.userInfo?.status === '프리랜서' ? 'selected' : ''}>프리랜서</option>
+                            <option value="무직" ${this.userInfo?.status === '무직' ? 'selected' : ''}>무직</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">관심 분야 (복수 선택 가능)</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="interest-housing" value="주거" 
+                                       ${this.userInfo?.interests?.includes('주거') ? 'checked' : ''}>
+                                <label for="interest-housing">주거/주택</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="interest-job" value="취업" 
+                                       ${this.userInfo?.interests?.includes('취업') ? 'checked' : ''}>
+                                <label for="interest-job">취업/일자리</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="interest-startup" value="창업" 
+                                       ${this.userInfo?.interests?.includes('창업') ? 'checked' : ''}>
+                                <label for="interest-startup">창업</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="interest-education" value="교육" 
+                                       ${this.userInfo?.interests?.includes('교육') ? 'checked' : ''}>
+                                <label for="interest-education">교육/학자금</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="interest-welfare" value="복지" 
+                                       ${this.userInfo?.interests?.includes('복지') ? 'checked' : ''}>
+                                <label for="interest-welfare">생활/복지</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="user-info-footer">
+                    <button class="btn-cancel" onclick="document.getElementById('userInfoModal').classList.remove('active')">취소</button>
+                    <button class="btn-save" id="saveUserInfo">저장하고 맞춤 정책 찾기</button>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+        
+        // Save button event
+        document.getElementById('saveUserInfo').addEventListener('click', () => {
+            this.saveUserInfo();
+            modal.classList.remove('active');
+            this.requestPersonalizedPolicies();
+        });
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
+
+    saveUserInfo() {
+        const interests = [];
+        document.querySelectorAll('.checkbox-item input:checked').forEach(cb => {
+            interests.push(cb.value);
+        });
+        
+        this.userInfo = {
+            age: document.getElementById('userAge').value,
+            region: document.getElementById('userRegion').value,
+            status: document.getElementById('userStatus').value,
+            interests: interests
+        };
+        
+        localStorage.setItem('youthyUserInfo', JSON.stringify(this.userInfo));
+    }
+
+    loadUserInfo() {
+        const saved = localStorage.getItem('youthyUserInfo');
+        return saved ? JSON.parse(saved) : null;
+    }
+
+    requestPersonalizedPolicies() {
+        if (!this.userInfo) return;
+        
+        let message = `나이 ${this.userInfo.age}세, ${this.userInfo.region} 거주, ${this.userInfo.status}인 저에게 맞는 `;
+        if (this.userInfo.interests && this.userInfo.interests.length > 0) {
+            message += `${this.userInfo.interests.join(', ')} 분야의 `;
+        }
+        message += '청년 정책을 추천해주세요';
+        
+        this.chatInput.value = message;
+        this.sendMessage();
     }
 
     async sendMessage() {
         const message = this.chatInput.value.trim();
         if (!message || this.isTyping) return;
 
-        // Fade welcome content on first message
-        this.fadeWelcomeContent();
+        // Hide welcome content on first message
+        this.hideWelcomeContent();
 
         // Add user message
         this.addMessage(message, 'user');
@@ -148,13 +278,13 @@ class YouthyChat {
         this.showTypingIndicator();
         
         try {
-            // Send to API
+            // Send to API with user info context
             const response = await this.sendToAPI(message);
             
             // Remove typing indicator
             this.hideTypingIndicator();
             
-            // Add AI response with poster option if applicable
+            // Add AI response
             const messageId = this.addMessage(response.message, 'ai', response.references, response.hasPoster);
             
             // Add follow-up suggestions if available
@@ -179,7 +309,8 @@ class YouthyChat {
                 body: JSON.stringify({
                     message: message,
                     context: {
-                        history: this.messageHistory.slice(-5) // Send last 5 messages for context
+                        history: this.messageHistory.slice(-5),
+                        userInfo: this.userInfo
                     }
                 })
             });
@@ -199,7 +330,6 @@ class YouthyChat {
             return data;
         } catch (error) {
             console.error('API Error:', error);
-            // Throw error to be handled by parent catch block
             throw new Error('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
         }
     }
@@ -213,15 +343,15 @@ class YouthyChat {
         const avatarDiv = document.createElement('div');
         
         if (sender === 'ai') {
-            // Use YOUTHY logo for AI messages
+            // Use sparkles logo for AI messages
             avatarDiv.className = 'message-avatar youthy-logo';
             avatarDiv.innerHTML = `
                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect width="100" height="100" fill="#007AFF"/>
                     <g transform="translate(50, 50)">
-                        <!-- Center star made of 4 diamonds -->
-                        <path d="M0 -16L8 0L0 16L-8 0Z" fill="white"/>
-                        <path d="M-16 0L0 -8L16 0L0 8Z" fill="white"/>
+                        <path d="M-15 -7.5L-7.5 0L-15 7.5L-22.5 0Z" fill="white" opacity="0.8"/>
+                        <path d="M0 -20L10 0L0 20L-10 0Z" fill="white"/>
+                        <path d="M15 -12.5L20 -7.5L15 -2.5L10 -7.5Z" fill="white" opacity="0.6"/>
                     </g>
                 </svg>
             `;
@@ -270,6 +400,36 @@ class YouthyChat {
         this.scrollToBottom();
         
         return messageId;
+    }
+
+    formatMessage(text) {
+        // Enhanced formatting for better readability
+        
+        // Headers
+        text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+        text = text.replace(/^# (.+)$/gm, '<h3>$1</h3>');
+        
+        // Policy cards for structured content
+        text = text.replace(/📍\s*\*\*(.+?)\*\*/g, '<div class="policy-card"><div class="policy-title">📍 $1</div><div class="policy-description">');
+        text = text.replace(/(\d+\.\s*\*\*[^*]+\*\*[^📍]+?)(?=\d+\.\s*\*\*|$)/gs, (match) => {
+            return `<div class="policy-card">${match}</div>`;
+        });
+        
+        // Bold text
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        
+        // Phone numbers with icon
+        text = text.replace(/📞\s*([\d-]+)/g, '<span class="policy-contact">📞 $1</span>');
+        
+        // Bullet points with better spacing
+        text = text.replace(/^•\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">•</span><span>$1</span></div>');
+        text = text.replace(/^-\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">•</span><span>$1</span></div>');
+        
+        // Line breaks
+        text = text.replace(/\n/g, '<br>');
+        
+        return text;
     }
 
     createScrapButton(messageId, messageText) {
@@ -347,7 +507,6 @@ class YouthyChat {
     }
 
     showScrapModal() {
-        // Create modal if it doesn't exist
         let modal = document.getElementById('scrapModal');
         if (!modal) {
             modal = document.createElement('div');
@@ -356,7 +515,6 @@ class YouthyChat {
             document.body.appendChild(modal);
         }
         
-        // Update modal content
         modal.innerHTML = `
             <div class="scrap-content">
                 <div class="scrap-header">
@@ -463,7 +621,6 @@ class YouthyChat {
     }
 
     showPosterModal() {
-        // Create modal if it doesn't exist
         let modal = document.getElementById('posterModal');
         if (!modal) {
             modal = document.createElement('div');
@@ -488,12 +645,10 @@ class YouthyChat {
             `;
             document.body.appendChild(modal);
             
-            // Add close event
             document.getElementById('posterCloseBtn').addEventListener('click', () => {
                 modal.classList.remove('active');
             });
             
-            // Close on outside click
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('active');
@@ -505,7 +660,6 @@ class YouthyChat {
     }
 
     generatePosterGrid() {
-        // Generate placeholder poster items
         const posters = [
             { title: '청년 월세 지원', desc: '월 최대 20만원 지원' },
             { title: '청년 전세자금 대출', desc: '최대 2억원 저금리' },
@@ -523,22 +677,6 @@ class YouthyChat {
                 <div class="poster-item-title">${poster.desc}</div>
             </div>
         `).join('');
-    }
-
-    formatMessage(text) {
-        // Convert line breaks to <br>
-        text = text.replace(/\n/g, '<br>');
-        
-        // Convert markdown-style bold
-        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        
-        // Convert bullet points
-        text = text.replace(/•/g, '&bull;');
-        
-        // Parse numbered lists
-        text = text.replace(/(\d+)\.\s/g, '<br>$1. ');
-        
-        return text;
     }
 
     createReferences(references) {
@@ -640,15 +778,16 @@ class YouthyChat {
         typingDiv.className = 'message ai';
         typingDiv.id = 'typing-indicator';
         
-        // Add YOUTHY logo for typing indicator
+        // Add sparkles logo for typing indicator
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'message-avatar youthy-logo';
         avatarDiv.innerHTML = `
             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect width="100" height="100" fill="#007AFF"/>
                 <g transform="translate(50, 50)">
-                    <path d="M0 -16L8 0L0 16L-8 0Z" fill="white"/>
-                    <path d="M-16 0L0 -8L16 0L0 8Z" fill="white"/>
+                    <path d="M-15 -7.5L-7.5 0L-15 7.5L-22.5 0Z" fill="white" opacity="0.8"/>
+                    <path d="M0 -20L10 0L0 20L-10 0Z" fill="white"/>
+                    <path d="M15 -12.5L20 -7.5L15 -2.5L10 -7.5Z" fill="white" opacity="0.6"/>
                 </g>
             </svg>
         `;
@@ -689,7 +828,9 @@ class YouthyChat {
     }
 
     scrollToBottom() {
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        setTimeout(() => {
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        }, 100);
     }
 }
 
