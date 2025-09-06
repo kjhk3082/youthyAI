@@ -12,6 +12,10 @@ require('dotenv').config();
 const RAGSystem = require('./src/ragSystem');
 const ragSystem = new RAGSystem();
 
+// Search Service import for enhanced responses
+const SearchService = require('./services/searchService');
+const searchService = new SearchService();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -313,8 +317,17 @@ async function processMessage(message) {
     const region = intent.region || null;
     const relevantPolicies = findRelevantPolicies(lowerMessage, region);
     
-    // Generate response based on intent and policies
-    const response = generateResponse(intent, relevantPolicies, message);
+    // Try to get enhanced information from external APIs
+    let enhancedInfo = null;
+    try {
+        console.log('🔍 Searching for enhanced information...');
+        enhancedInfo = await searchService.searchComprehensive(message, region);
+    } catch (error) {
+        console.log('External API search failed, using local data:', error.message);
+    }
+    
+    // Generate response based on intent, policies, and enhanced info
+    const response = generateEnhancedResponse(intent, relevantPolicies, message, enhancedInfo);
     
     return response;
 }
@@ -384,6 +397,70 @@ function findRelevantPolicies(message, region = null) {
     relevant.sort((a, b) => b.relevance - a.relevance);
     
     return relevant.slice(0, 5); // Return top 5 most relevant
+}
+
+function generateEnhancedResponse(intent, policies, originalMessage, enhancedInfo) {
+    // If we have enhanced info from APIs, use it to enrich the response
+    if (enhancedInfo) {
+        return generateResponseWithEnhancedInfo(intent, policies, originalMessage, enhancedInfo);
+    }
+    // Otherwise, fall back to regular response
+    return generateResponse(intent, policies, originalMessage);
+}
+
+function generateResponseWithEnhancedInfo(intent, policies, originalMessage, enhancedInfo) {
+    let message = '';
+    let references = [];
+    let followUpQuestions = [];
+    
+    // Start with basic response
+    const basicResponse = generateResponse(intent, policies, originalMessage);
+    message = basicResponse.message;
+    references = basicResponse.references || [];
+    followUpQuestions = basicResponse.followUpQuestions || [];
+    
+    // Add real-time information from Tavily if available
+    if (enhancedInfo.realTimeInfo?.answer) {
+        message += '\n\n### 🔍 최신 정보\n';
+        message += enhancedInfo.realTimeInfo.answer + '\n';
+        
+        // Add Tavily search results as references
+        if (enhancedInfo.realTimeInfo.results) {
+            enhancedInfo.realTimeInfo.results.forEach(result => {
+                references.push({
+                    title: result.title,
+                    url: result.url,
+                    snippet: result.content?.substring(0, 200) + '...'
+                });
+            });
+        }
+    }
+    
+    // Add AI analysis from Perplexity if available
+    if (enhancedInfo.aiAnalysis?.answer) {
+        message += '\n\n### 💡 AI 분석\n';
+        message += enhancedInfo.aiAnalysis.answer + '\n';
+    }
+    
+    // Add nearby youth centers if location info is available
+    if (enhancedInfo.nearbyLocations && enhancedInfo.nearbyLocations.length > 0) {
+        message += '\n\n### 📍 가까운 청년센터\n';
+        enhancedInfo.nearbyLocations.slice(0, 3).forEach(location => {
+            message += `• **${location.title}**\n`;
+            message += `  주소: ${location.address}\n`;
+            if (location.telephone) {
+                message += `  📞 ${location.telephone}\n`;
+            }
+            message += '\n';
+        });
+    }
+    
+    return {
+        message: message,
+        references: references,
+        followUpQuestions: followUpQuestions,
+        hasEnhancedInfo: true
+    };
 }
 
 function generateResponse(intent, policies, originalMessage) {
