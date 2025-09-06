@@ -277,8 +277,191 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Import real policy fetcher
+const policyFetcher = require('./real-policy-fetcher');
+
 // API Routes
 app.use('/api', districtPoliciesRouter);
+
+/**
+ * 백엔드 팀의 JPA Repository와 동일한 엔드포인트
+ * YouthPolicyRepository의 메서드들을 REST API로 구현
+ */
+
+// findByPolicyNameContaining - 정책명으로 검색
+app.get('/api/policies/search', async (req, res) => {
+  try {
+    const { keyword, page = 0, size = 10 } = req.query;
+    
+    const allPolicies = await policyFetcher.fetchAllPolicies({
+      query: keyword || '서울',
+      includeRealData: true
+    });
+    
+    // 키워드 필터링
+    const filtered = keyword 
+      ? allPolicies.filter(p => p.policyName.includes(keyword))
+      : allPolicies;
+    
+    // 페이징 처리
+    const start = page * size;
+    const paged = filtered.slice(start, start + size);
+    
+    res.json({
+      content: paged,
+      totalElements: filtered.length,
+      totalPages: Math.ceil(filtered.length / size),
+      number: page,
+      size: size,
+      first: page === 0,
+      last: page >= Math.ceil(filtered.length / size) - 1
+    });
+  } catch (error) {
+    console.error('Policy search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// findByPolicyField - 정책 분야별 조회
+app.get('/api/policies/field/:field', async (req, res) => {
+  try {
+    const { field } = req.params;
+    const { page = 0, size = 10 } = req.query;
+    
+    const allPolicies = await policyFetcher.fetchAllPolicies();
+    const filtered = policyFetcher.filterByField(allPolicies, field);
+    
+    // 페이징 처리
+    const start = page * size;
+    const paged = filtered.slice(start, start + size);
+    
+    res.json({
+      content: paged,
+      totalElements: filtered.length,
+      totalPages: Math.ceil(filtered.length / size),
+      number: page,
+      size: size
+    });
+  } catch (error) {
+    console.error('Field filter error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// findAll - 모든 정책 조회 (JpaRepository 기본 메서드)
+app.get('/api/policies', async (req, res) => {
+  try {
+    const { page = 0, size = 20 } = req.query;
+    
+    const allPolicies = await policyFetcher.fetchAllPolicies({
+      includeRealData: true,
+      sources: ['real', 'seoul'] // 실제 데이터 우선
+    });
+    
+    // 페이징 처리
+    const start = page * size;
+    const paged = allPolicies.slice(start, start + size);
+    
+    res.json({
+      content: paged,
+      totalElements: allPolicies.length,
+      totalPages: Math.ceil(allPolicies.length / size),
+      number: parseInt(page),
+      size: parseInt(size),
+      numberOfElements: paged.length,
+      empty: paged.length === 0,
+      first: page == 0,
+      last: page >= Math.ceil(allPolicies.length / size) - 1
+    });
+  } catch (error) {
+    console.error('Get all policies error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// findById - ID로 정책 조회 (JpaRepository 기본 메서드)
+app.get('/api/policies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const allPolicies = await policyFetcher.fetchAllPolicies();
+    const policy = allPolicies.find(p => p.policyNo === id);
+    
+    if (policy) {
+      // 조회수 증가 시뮬레이션
+      policy.viewCount = (policy.viewCount || 0) + 1;
+      res.json(policy);
+    } else {
+      res.status(404).json({ error: 'Policy not found' });
+    }
+  } catch (error) {
+    console.error('Get policy by ID error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 복합 검색 (JpaSpecificationExecutor를 통한 동적 쿼리 시뮬레이션)
+app.post('/api/policies/search/advanced', async (req, res) => {
+  try {
+    const { 
+      policyField, 
+      minAge, 
+      maxAge, 
+      employmentStatus,
+      educationRequirement,
+      keyword,
+      page = 0,
+      size = 10
+    } = req.body;
+    
+    let policies = await policyFetcher.fetchAllPolicies();
+    
+    // 동적 필터링 (JpaSpecification처럼)
+    if (policyField) {
+      policies = policyFetcher.filterByField(policies, policyField);
+    }
+    
+    if (minAge || maxAge) {
+      const userAge = minAge || maxAge;
+      policies = policyFetcher.filterByAge(policies, userAge);
+    }
+    
+    if (employmentStatus) {
+      policies = policies.filter(p => 
+        p.employmentStatus && p.employmentStatus.includes(employmentStatus)
+      );
+    }
+    
+    if (educationRequirement) {
+      policies = policies.filter(p => 
+        p.educationRequirement && p.educationRequirement.includes(educationRequirement)
+      );
+    }
+    
+    if (keyword) {
+      policies = policies.filter(p => 
+        p.policyName.includes(keyword) || 
+        p.policySummary.includes(keyword)
+      );
+    }
+    
+    // 페이징
+    const start = page * size;
+    const paged = policies.slice(start, start + size);
+    
+    res.json({
+      content: paged,
+      totalElements: policies.length,
+      totalPages: Math.ceil(policies.length / size),
+      number: page,
+      size: size,
+      searchCriteria: req.body
+    });
+  } catch (error) {
+    console.error('Advanced search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Root endpoint
 app.get('/', (req, res) => {
