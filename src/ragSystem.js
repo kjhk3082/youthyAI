@@ -1,5 +1,6 @@
 const axios = require('axios');
 require('dotenv').config();
+const DataFetcher = require('./dataFetcher');
 
 class RAGSystem {
     constructor() {
@@ -13,8 +14,14 @@ class RAGSystem {
         this.vectorStore = [];
         this.documentsStore = [];
         
+        // Initialize data fetcher for real-time data
+        this.dataFetcher = new DataFetcher();
+        
         // Initialize with Korean youth policy data
         this.initializePolicyData();
+        
+        // Refresh data periodically
+        this.startAutoRefresh();
     }
 
     initializePolicyData() {
@@ -125,12 +132,22 @@ class RAGSystem {
     }
 
     async searchSimilarDocuments(query, topK = 3) {
+        // 먼저 실시간 데이터 가져오기
+        const realTimePolicies = await this.dataFetcher.searchPolicies(query);
+        
+        // 실시간 데이터가 있으면 우선 사용
+        if (realTimePolicies.length > 0) {
+            console.log(`🎯 Found ${realTimePolicies.length} real-time policies`);
+            return realTimePolicies.slice(0, topK);
+        }
+        
+        // 실시간 데이터가 없으면 기존 데이터베이스 검색
         const queryEmbedding = await this.getEmbedding(query);
         const similarities = [];
 
         // 정책 데이터베이스에서 검색
         for (const policy of this.policyDatabase) {
-            const policyText = `${policy.title} ${policy.content} ${policy.keywords.join(' ')}`;
+            const policyText = `${policy.title} ${policy.content} ${policy.keywords ? policy.keywords.join(' ') : ''}`;
             const policyEmbedding = await this.getEmbedding(policyText);
             const similarity = this.cosineSimilarity(queryEmbedding, policyEmbedding);
             
@@ -275,13 +292,41 @@ class RAGSystem {
             } else if (doc.category === '창업') {
                 questions.add('창업 지원금 신청 조건은?');
                 questions.add('창업 교육 프로그램은?');
-            } else if (doc.category === '수당') {
+            } else if (doc.category === '수당' || doc.category === '복지') {
                 questions.add('청년수당 신청 자격은?');
                 questions.add('구직활동 증명 방법은?');
+            } else if (doc.category === '교육') {
+                questions.add('교육비 지원 받으려면?');
+                questions.add('직업훈련 프로그램은?');
             }
         });
         
         return Array.from(questions).slice(0, 3);
+    }
+    
+    // 자동 데이터 갱신
+    startAutoRefresh() {
+        const interval = parseInt(process.env.AUTO_REFRESH_INTERVAL) || 24;
+        const milliseconds = interval * 60 * 60 * 1000;
+        
+        setInterval(async () => {
+            console.log('🔄 Auto-refreshing policy data...');
+            try {
+                const freshPolicies = await this.dataFetcher.fetchAllPolicies();
+                if (freshPolicies.length > 0) {
+                    this.policyDatabase = [...this.policyDatabase, ...freshPolicies];
+                    // 중복 제거
+                    const uniquePolicies = new Map();
+                    this.policyDatabase.forEach(p => uniquePolicies.set(p.id, p));
+                    this.policyDatabase = Array.from(uniquePolicies.values());
+                    console.log(`✅ Policy database updated: ${this.policyDatabase.length} policies`);
+                }
+            } catch (error) {
+                console.error('❌ Auto-refresh failed:', error.message);
+            }
+        }, milliseconds);
+        
+        console.log(`⏰ Auto-refresh scheduled every ${interval} hours`);
     }
 }
 
