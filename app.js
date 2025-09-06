@@ -781,44 +781,60 @@ function analyzeIntent(message) {
     
     let type = 'general';
     
-    // Check for specific age mentions (18-39)
+    // Main categories from UI: 취업, 창업, 주거, 교육, 복지, 문화/예술, 참여권리, 기타
+    // Check category first
+    if (message.includes('취업') || message.includes('일자리') || message.includes('인턴') || message.includes('구직')) {
+        type = 'employment';
+    } else if (message.includes('창업') || message.includes('사업') || message.includes('스타트업')) {
+        type = 'startup';
+    } else if (message.includes('주거') || message.includes('월세') || message.includes('전세') || message.includes('집') || message.includes('주택')) {
+        type = 'housing';
+    } else if (message.includes('교육') || message.includes('학자금') || message.includes('학비') || message.includes('장학')) {
+        type = 'education';
+    } else if (message.includes('복지') || message.includes('수당') || message.includes('청년수당')) {
+        type = 'welfare';
+    } else if (message.includes('문화') || message.includes('예술') || message.includes('공연') || message.includes('전시')) {
+        type = 'culture';
+    } else if (message.includes('참여') || message.includes('권리') || message.includes('투표') || message.includes('정치')) {
+        type = 'participation';
+    }
+    
+    // Check for specific age mentions (18-39) - all youth ages
     const ageMatch = message.match(/(\d{2})살|난\s*(\d{2})|저\s*(\d{2})|\b(\d{2})년생/);
-    if (ageMatch) {
+    if (ageMatch && type === 'general') {
         const age = parseInt(ageMatch[1] || ageMatch[2] || ageMatch[3] || ageMatch[4]);
-        if (age >= 18 && age <= 29) {
-            type = 'age_20s';
-        } else if (age >= 30 && age <= 39) {
-            type = 'age_30s';
+        if (age >= 18 && age <= 39) {
+            type = 'youth_age_specific';
         }
     }
     
-    // Check for age-specific queries
+    // Check for age-range queries
     if (type === 'general') {
-        if (message.includes('20대') || message.includes('20살') || message.includes('스무살') || message.includes('이십대')) {
-            type = 'age_20s';
-        } else if (message.includes('30대') || message.includes('30살') || message.includes('삼십대')) {
-            type = 'age_30s';
+        if (message.includes('20대') || message.includes('이십대')) {
+            type = 'youth_age_specific';
+        } else if (message.includes('30대') || message.includes('삼십대')) {
+            type = 'youth_age_specific';
+        } else if (message.includes('청년')) {
+            type = 'youth_general';
         }
     }
     
     // Check for personalized queries
-    if ((message.includes('나') || message.includes('저') || message.includes('내가')) && 
-        (message.includes('맞는') || message.includes('필요') || message.includes('받을'))) {
-        if (message.includes('정책') || message.includes('지원') || message.includes('혜택')) {
-            if (type === 'general') {
-                type = 'personal_recommendation';
-            }
+    if (type === 'general') {
+        if ((message.includes('나') || message.includes('저') || message.includes('내가')) && 
+            (message.includes('맞는') || message.includes('필요') || message.includes('받을') || 
+             message.includes('할 수 있') || message.includes('가능'))) {
+            type = 'personal_recommendation';
+        } else if (message.includes('추천') || message.includes('어떤') || message.includes('뭐가 있') || 
+                   message.includes('알려주') || message.includes('소개')) {
+            type = 'recommendation';
         }
-    } else if (message.includes('필요한') || message.includes('추천') || message.includes('어떤')) {
-        if (message.includes('정책') || message.includes('지원')) {
-            if (type === 'general') {
-                type = 'recommendation';
-            }
-        }
-    } else if (message.includes('월세') || message.includes('주거') || message.includes('집')) {
-        type = 'housing';
-    } else if (message.includes('전세') || message.includes('전세자금')) {
-        type = 'jeonse';
+    }
+    
+    // Specific policy types (if not already categorized)
+    if (type === 'general') {
+        if (message.includes('전세자금')) {
+            type = 'jeonse';
     } else if (message.includes('청년수당') || message.includes('수당')) {
         type = 'allowance';
     } else if (message.includes('신청') && (message.includes('방법') || message.includes('어떻게'))) {
@@ -1075,7 +1091,8 @@ function generateResponse(intent, policies, originalMessage) {
     }
     
     switch (intent.type) {
-        case 'age_20s':
+        case 'youth_age_specific':
+        case 'youth_general':
         case 'personal_recommendation':
         case 'recommendation':
             // Extract age if mentioned
@@ -1201,6 +1218,92 @@ function generateResponse(intent, policies, originalMessage) {
                     phone: ''
                 });
             });
+            break;
+            
+        case 'education':
+            message = '🎓 **청년 교육 지원 정책**\n\n';
+            message += '학업과 자기계발을 위한 다양한 지원이 있습니다!\n\n';
+            
+            const educationPolicies = policies.filter(p => 
+                p.title.includes('교육') || p.title.includes('학자금') || 
+                p.title.includes('학비') || p.title.includes('장학') ||
+                p.description.includes('교육') || p.description.includes('훈련')
+            ).slice(0, 5);
+            
+            if (educationPolicies.length > 0) {
+                educationPolicies.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원: ${policy.amount}\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
+                });
+            } else {
+                message += '• 국가장학금 지원\n';
+                message += '• 학자금 대출\n';
+                message += '• 직업훈련 프로그램\n';
+                message += '• 자격증 취득 지원\n\n';
+            }
+            
+            followUpQuestions = [
+                '학자금 대출 조건은?',
+                '국가장학금 신청 방법은?',
+                '직업훈련 프로그램 일정은?'
+            ];
+            break;
+            
+        case 'welfare':
+            message = '🤝 **청년 복지 지원**\n\n';
+            message += '청년들의 생활 안정을 위한 복지 혜택입니다.\n\n';
+            
+            const welfarePolicies = policies.filter(p => 
+                p.title.includes('수당') || p.title.includes('복지') || 
+                p.title.includes('지원금') || p.description.includes('생활')
+            ).slice(0, 5);
+            
+            if (welfarePolicies.length > 0) {
+                welfarePolicies.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원: ${policy.amount}\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
+                });
+            }
+            
+            followUpQuestions = [
+                '청년수당 자격 조건은?',
+                '복지 혜택 신청 방법은?',
+                '소득 기준이 어떻게 되나요?'
+            ];
+            break;
+            
+        case 'culture':
+            message = '🎨 **청년 문화/예술 지원**\n\n';
+            message += '문화와 예술 활동을 위한 지원 프로그램입니다.\n\n';
+            message += '• 청년 문화패스\n';
+            message += '• 공연/전시 할인\n';
+            message += '• 예술 창작 지원\n';
+            message += '• 문화 활동 보조금\n\n';
+            
+            followUpQuestions = [
+                '청년 문화패스 신청 방법은?',
+                '문화 활동 지원금은?',
+                '예술 창작 공간 지원은?'
+            ];
+            break;
+            
+        case 'participation':
+            message = '🗳️ **청년 참여권리**\n\n';
+            message += '청년들의 사회 참여를 위한 정책입니다.\n\n';
+            message += '• 청년 정책 참여단\n';
+            message += '• 청년 위원회 활동\n';
+            message += '• 정책 제안 플랫폼\n';
+            message += '• 청년 공청회 참여\n\n';
+            
+            followUpQuestions = [
+                '청년 정책 참여단 신청은?',
+                '청년 위원회 활동 방법은?',
+                '정책 제안은 어떻게 하나요?'
+            ];
             break;
             
         case 'age_30s':
