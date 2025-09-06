@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프론트엔드 API 테스트 - 실제 청년정책 데이터</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 20px; }
+        .info-box { background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .info-box code { background: #1976d2; color: white; padding: 2px 6px; border-radius: 4px; }
+        .test-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 10px; margin-bottom: 10px; }
+        button:hover { background: #45a049; }
+        .result { background: #f9f9f9; padding: 15px; border-radius: 4px; margin-top: 15px; border-left: 4px solid #4caf50; }
+        .error { border-left-color: #f44336; background: #ffebee; }
+        .policy-card { background: white; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .policy-title { font-size: 18px; font-weight: bold; color: #1976d2; margin-bottom: 10px; }
+        .policy-info { margin: 5px 0; color: #666; }
+        .real-data-badge { background: #ff9800; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; display: inline-block; margin-left: 10px; }
+        pre { background: #263238; color: #aed581; padding: 15px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 프론트엔드 API 테스트 <span class="real-data-badge">실제 데이터</span></h1>
+        
+        <div class="info-box">
+            <h3>📌 API 서버 정보</h3>
+            <p>Public URL: <code>https://3001-ie8kwy33uts4uea5lzj2o-6532622b.e2b.dev</code></p>
+            <p>프록시 설정 시: <code>/api/*</code> → 위 URL로 포워딩</p>
+        </div>
+
+        <!-- 1. 전체 정책 조회 -->
+        <div class="test-section">
+            <h2>1️⃣ 전체 정책 조회 (실제 서울시 청년정책)</h2>
+            <button onclick="fetchAllPolicies()">정책 목록 가져오기</button>
+            <div id="all-policies-result"></div>
+        </div>
+
+        <!-- 2. 특정 정책 상세 조회 -->
+        <div class="test-section">
+            <h2>2️⃣ 정책 상세 조회</h2>
+            <button onclick="fetchPolicyDetail('R2024-001')">서울시 청년월세 지원 상세보기</button>
+            <button onclick="fetchPolicyDetail('R2024-002')">청년취업사관학교 상세보기</button>
+            <div id="policy-detail-result"></div>
+        </div>
+
+        <!-- 3. 구별 정책 조회 -->
+        <div class="test-section">
+            <h2>3️⃣ 구별 정책 조회</h2>
+            <button onclick="fetchDistrictPolicies('Gangnam-gu')">강남구</button>
+            <button onclick="fetchDistrictPolicies('Seocho-gu')">서초구</button>
+            <button onclick="fetchDistrictPolicies('Gangdong-gu')">강동구</button>
+            <div id="district-result"></div>
+        </div>
+
+        <!-- 4. 고급 검색 -->
+        <div class="test-section">
+            <h2>4️⃣ 고급 검색 (복합 조건)</h2>
+            <button onclick="advancedSearch('주거', '월세')">주거 + 월세</button>
+            <button onclick="advancedSearch('일자리', '교육')">일자리 + 교육</button>
+            <button onclick="advancedSearch('창업', '')">창업 전체</button>
+            <div id="advanced-search-result"></div>
+        </div>
+
+        <!-- 5. 프론트엔드 코드 예제 -->
+        <div class="test-section">
+            <h2>5️⃣ 프론트엔드 코드 예제</h2>
+            <h3>React/TypeScript 예제:</h3>
+            <pre>
+// Vite 프록시 설정 (vite.config.ts)
+export default {
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://3001-ie8kwy33uts4uea5lzj2o-6532622b.e2b.dev',
+        changeOrigin: true
+      }
+    }
+  }
+}
+
+// API 호출 코드
+const response = await fetch('/api/policies?page=0&size=10');
+const data = await response.json();
+console.log('실제 정책:', data.content);
+            </pre>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL - 직접 호출
+        const API_BASE = 'https://3001-ie8kwy33uts4uea5lzj2o-6532622b.e2b.dev';
+
+        // 1. 전체 정책 조회
+        async function fetchAllPolicies() {
+            const resultDiv = document.getElementById('all-policies-result');
+            resultDiv.innerHTML = '로딩 중...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/policies?page=0&size=5`);
+                const data = await response.json();
+                
+                let html = `<div class="result">
+                    <h3>✅ 성공! 총 ${data.totalElements}개의 실제 정책</h3>`;
+                
+                data.content.forEach(policy => {
+                    html += `
+                        <div class="policy-card">
+                            <div class="policy-title">${policy.policyName}</div>
+                            <div class="policy-info">📌 정책번호: ${policy.policyNo}</div>
+                            <div class="policy-info">💰 지원내용: ${policy.supportContent}</div>
+                            <div class="policy-info">👥 연령: ${policy.minAge}-${policy.maxAge}세</div>
+                            <div class="policy-info">📅 신청기간: ${policy.applicationPeriod}</div>
+                            <div class="policy-info">🔗 신청: <a href="${policy.applicationSite}" target="_blank">${policy.applicationSite}</a></div>
+                            <div class="policy-info">👁️ 조회수: ${policy.viewCount}</div>
+                        </div>`;
+                });
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 에러: ${error.message}</div>`;
+            }
+        }
+
+        // 2. 정책 상세 조회
+        async function fetchPolicyDetail(policyNo) {
+            const resultDiv = document.getElementById('policy-detail-result');
+            resultDiv.innerHTML = '로딩 중...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/policies/${policyNo}`);
+                const policy = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>📋 ${policy.policyName}</h3>
+                        <div class="policy-info"><strong>정책번호:</strong> ${policy.policyNo}</div>
+                        <div class="policy-info"><strong>정책설명:</strong> ${policy.policySummary}</div>
+                        <div class="policy-info"><strong>분야:</strong> ${policy.policyField}</div>
+                        <div class="policy-info"><strong>지원내용:</strong> ${policy.supportContent}</div>
+                        <div class="policy-info"><strong>운영기간:</strong> ${policy.operationPeriod}</div>
+                        <div class="policy-info"><strong>신청기간:</strong> ${policy.applicationPeriod}</div>
+                        <div class="policy-info"><strong>지원규모:</strong> ${policy.supportScale}</div>
+                        <div class="policy-info"><strong>소득조건:</strong> ${policy.incomeCondition}</div>
+                        <div class="policy-info"><strong>신청방법:</strong> ${policy.applicationProcess}</div>
+                        <div class="policy-info"><strong>필요서류:</strong> ${policy.requiredDocuments}</div>
+                        <div class="policy-info"><strong>조회수:</strong> ${policy.viewCount}</div>
+                    </div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 에러: ${error.message}</div>`;
+            }
+        }
+
+        // 3. 구별 정책 조회
+        async function fetchDistrictPolicies(district) {
+            const resultDiv = document.getElementById('district-result');
+            resultDiv.innerHTML = '로딩 중...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/district-policies?districts=${district}`);
+                const data = await response.json();
+                
+                const policies = data.data[district] || [];
+                
+                let html = `<div class="result">
+                    <h3>📍 ${district} 정책 (${policies.length}개)</h3>`;
+                
+                policies.forEach(policy => {
+                    html += `
+                        <div class="policy-card">
+                            <div class="policy-title">${policy.title}</div>
+                            <div class="policy-info">🏷️ 카테고리: ${policy.category}</div>
+                            <div class="policy-info">👥 대상: ${policy.target}</div>
+                            <div class="policy-info">📅 마감: ${policy.deadline}</div>
+                            <div class="policy-info">📝 ${policy.description}</div>
+                        </div>`;
+                });
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 에러: ${error.message}</div>`;
+            }
+        }
+
+        // 4. 고급 검색
+        async function advancedSearch(field, keyword) {
+            const resultDiv = document.getElementById('advanced-search-result');
+            resultDiv.innerHTML = '로딩 중...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/policies/search/advanced`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        policyField: field,
+                        keyword: keyword,
+                        page: 0,
+                        size: 5
+                    })
+                });
+                const data = await response.json();
+                
+                let html = `<div class="result">
+                    <h3>🔍 검색 결과: ${data.totalElements}개 (${field} ${keyword ? '+ ' + keyword : ''})</h3>`;
+                
+                data.content.forEach(policy => {
+                    html += `
+                        <div class="policy-card">
+                            <div class="policy-title">${policy.policyName}</div>
+                            <div class="policy-info">🏷️ 분야: ${policy.policyField}</div>
+                            <div class="policy-info">💰 ${policy.supportContent}</div>
+                        </div>`;
+                });
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 에러: ${error.message}</div>`;
+            }
+        }
+
+        // 페이지 로드 시 자동으로 정책 목록 표시
+        window.onload = () => {
+            fetchAllPolicies();
+        };
+    </script>
+</body>
+</html>
