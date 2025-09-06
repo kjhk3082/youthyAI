@@ -1116,27 +1116,7 @@ body {
     margin: 12px 0 8px 0;
 }
 
-.policy-card {
-    background: var(--bg-gray);
-    border-radius: 12px;
-    padding: 16px;
-    margin: 12px 0;
-    border-left: 4px solid var(--primary-blue);
-}
-
-.policy-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-}
-
-.policy-description {
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-}
+/* Removed duplicate - using enhanced version below */
 
 .policy-details {
     display: flex;
@@ -1242,29 +1222,9 @@ body {
     margin: 0 2px;
 }
 
-.answer-section {
-    background: white;
-    border-radius: 12px;
-    padding: 16px;
-    margin: 12px 0;
-    border: 1px solid rgba(0, 122, 255, 0.1);
-    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.05);
-}
+/* Removed answer-section - not being used */
 
-.answer-section-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #007AFF;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.answer-section-content {
-    color: var(--text-primary);
-    line-height: 1.7;
-}
+/* Removed unused answer-section styles */
 
 .info-badge {
     display: inline-flex;
@@ -1373,7 +1333,7 @@ body {
     color: var(--text-primary);
 }
 
-/* Enhanced Policy Card */
+/* Policy Card Styling */
 .policy-card {
     background: linear-gradient(to right, #f8fbff, #ffffff);
     border-radius: 12px;
@@ -1399,7 +1359,7 @@ body {
 .policy-description {
     color: var(--text-primary);
     line-height: 1.6;
-    margin-bottom: 12px;
+    font-size: 14px;
 }
 
 .policy-detail-item {

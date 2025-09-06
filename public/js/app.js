@@ -405,7 +405,7 @@ class YouthyChat {
     formatMessage(text) {
         // Enhanced formatting with beautiful blue highlights
         
-        // Process sections with blue highlighting
+        // First, apply blue highlights to important information
         text = this.applyBlueHighlights(text);
         
         // Headers
@@ -413,40 +413,39 @@ class YouthyChat {
         text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>');
         text = text.replace(/^# (.+)$/gm, '<h3>$1</h3>');
         
-        // Policy cards with enhanced styling
-        text = text.replace(/📍\s*\*\*(.+?)\*\*/g, (match, title) => {
+        // Process policy cards - Find complete policy sections
+        text = text.replace(/📍\s*\*\*(.+?)\*\*([^📍]*?)(?=📍|💡|$)/gs, (match, title, content) => {
+            // Process the content inside the policy card
+            let processedContent = content;
+            
+            // Apply formatting to content
+            processedContent = processedContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            processedContent = processedContent.replace(/•\s*(.+?)(?=\n|•|$)/g, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
+            processedContent = processedContent.replace(/\n/g, '<br>');
+            
             return `<div class="policy-card">
                 <div class="policy-title">📍 ${title}</div>
-                <div class="policy-description">`;
-        });
-        
-        // Numbered policies
-        text = text.replace(/(\d+\.\s*\*\*[^*]+\*\*[^📍]+?)(?=\d+\.\s*\*\*|$)/gs, (match) => {
-            return `<div class="policy-card">${match}</div>`;
-        });
-        
-        // Key information sections
-        text = text.replace(/💡\s*\*\*(.+?)\*\*/g, '<div class="key-info"><div class="key-info-title">💡 중요 정보</div><div class="key-info-content">$1</div></div>');
-        
-        // Contact information
-        text = text.replace(/📞\s*([\d-]+)/g, (match, phone) => {
-            return `<div class="contact-info">
-                <div class="contact-icon">📞</div>
-                <div class="contact-details">
-                    <div class="contact-label">문의처</div>
-                    <div class="contact-value">${phone}</div>
-                </div>
+                <div class="policy-description">${processedContent}</div>
             </div>`;
         });
         
-        // Bold text
+        // Key information sections
+        text = text.replace(/💡\s*\*\*(.+?)\*\*([^💡📍]*?)(?=💡|📍|$)/gs, (match, title, content) => {
+            let processedContent = content.replace(/\n/g, '<br>');
+            return `<div class="key-info">
+                <div class="key-info-title">💡 ${title}</div>
+                <div class="key-info-content">${processedContent}</div>
+            </div>`;
+        });
+        
+        // Bold text (for remaining unprocessed bold text)
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         
-        // Bullet points with better spacing
-        text = text.replace(/^•\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
-        text = text.replace(/^-\s*(.+)$/gm, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
+        // Bullet points with better spacing (for remaining unprocessed bullets)
+        text = text.replace(/•\s*(.+?)(?=\n|•|$)/g, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
+        text = text.replace(/-\s*(.+?)(?=\n|-|$)/g, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
         
-        // Line breaks
+        // Line breaks (for remaining unprocessed line breaks)
         text = text.replace(/\n/g, '<br>');
         
         return text;
@@ -461,34 +460,16 @@ class YouthyChat {
             /(\d+(?:\.\d+)?%)/g,
             // Age ranges
             /(만?\s*\d+세(?:\s*~\s*\d+세)?)/g,
-            // Important keywords
-            /(최대|최소|월|연|일일|지원금|보조금|대출|임대|할인|무료|면제)/g
+            // Important keywords (reduced to avoid over-highlighting)
+            /(최대|최소|지원금|보조금|무료)/g
         ];
         
         highlightPatterns.forEach(pattern => {
             text = text.replace(pattern, '<span class="highlight-blue">$1</span>');
         });
         
-        // Special formatting for amounts
-        text = text.replace(/지원금액:\s*(.+?)(?=\n|$)/g, (match, amount) => {
-            return `<div class="policy-amount">💰 ${amount}</div>`;
-        });
-        
-        // Format eligibility as a list
-        text = text.replace(/자격조건:\s*(.+?)(?=\n\n|$)/gs, (match, conditions) => {
-            const items = conditions.split(/[,،]/)
-                .map(item => item.trim())
-                .filter(item => item)
-                .map(item => `<div class="eligibility-item">
-                    <span class="eligibility-icon">✓</span>
-                    <span>${item}</span>
-                </div>`)
-                .join('');
-            return `<div class="eligibility-list">
-                <div class="key-info-title">자격조건</div>
-                ${items}
-            </div>`;
-        });
+        // Simple contact info formatting
+        text = text.replace(/📞\s*([\d-]+)/g, '<span class="policy-contact">📞 $1</span>');
         
         return text;
     }
