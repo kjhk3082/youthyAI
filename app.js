@@ -43,7 +43,7 @@ const policyDatabase = {
             id: 1,
             title: "서울시 청년 월세 지원",
             description: "만 19-39세 무주택 청년에게 월 최대 20만원 지원",
-            eligibility: "중위소듍 150% 이하",
+            eligibility: "중위소득 150% 이하",
             amount: "월 20만원 (최대 12개월)",
             url: "https://youth.seoul.go.kr",
             region: "서울"
@@ -101,6 +101,114 @@ const policyDatabase = {
             amount: "최대 3천만원",
             url: "https://www.chuncheon.go.kr",
             region: "강원"
+        },
+        {
+            id: 31,
+            title: "대구광역시 청년 월세 지원",
+            description: "대구시 청년의 주거비 부담 완화를 위한 월세 지원",
+            eligibility: "만 19-34세 대구 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.daegu.go.kr",
+            region: "대구"
+        },
+        {
+            id: 32,
+            title: "광주광역시 청년 월세 지원",
+            description: "광주시 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-39세 광주 거주 무주택 청년",
+            amount: "월 최대 15만원 (12개월간)",
+            url: "https://www.gwangju.go.kr",
+            region: "광주"
+        },
+        {
+            id: 33,
+            title: "대전광역시 청년 월세 지원",
+            description: "대전시 청년의 주거 안정을 위한 월세 지원",
+            eligibility: "만 19-34세 대전 거주 무주택 청년",
+            amount: "월 최대 12만원 (12개월간)",
+            url: "https://www.daejeon.go.kr",
+            region: "대전"
+        },
+        {
+            id: 34,
+            title: "울산광역시 청년 전월세 보증금 대출",
+            description: "울산시 청년을 위한 전월세 보증금 대출 지원",
+            eligibility: "만 19-34세 울산 거주 무주택 청년",
+            amount: "최대 5천만원, 연 1.5%",
+            url: "https://www.ulsan.go.kr",
+            region: "울산"
+        },
+        {
+            id: 35,
+            title: "세종특별자치시 청년 월세 지원",
+            description: "세종시 청년의 주거비 부담 완화",
+            eligibility: "만 19-39세 세종 거주 무주택 청년",
+            amount: "월 최대 20만원 (12개월간)",
+            url: "https://www.sejong.go.kr",
+            region: "세종"
+        },
+        {
+            id: 36,
+            title: "충청북도 청년 월세 지원",
+            description: "충북 청년의 주거 안정을 위한 월세 지원",
+            eligibility: "만 19-34세 충북 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.chungbuk.go.kr",
+            region: "충북"
+        },
+        {
+            id: 37,
+            title: "충청남도 청년 주거비 지원",
+            description: "충남 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-39세 충남 거주 무주택 청년",
+            amount: "월 최대 15만원 (10개월간)",
+            url: "https://www.chungnam.go.kr",
+            region: "충남"
+        },
+        {
+            id: 38,
+            title: "전라북도 청년 월세 지원",
+            description: "전북 청년의 주거비 부담 완화 사업",
+            eligibility: "만 19-34세 전북 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.jeonbuk.go.kr",
+            region: "전북"
+        },
+        {
+            id: 39,
+            title: "전라남도 청년 주거비 지원",
+            description: "전남 청년의 안정적인 자립 기반 마련",
+            eligibility: "만 19-39세 전남 거주 무주택 청년",
+            amount: "월 최대 15만원 (12개월간)",
+            url: "https://www.jeonnam.go.kr",
+            region: "전남"
+        },
+        {
+            id: 40,
+            title: "경상북도 청년 월세 지원",
+            description: "경북 청년의 주거 안정을 위한 지원",
+            eligibility: "만 19-34세 경북 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.gb.go.kr",
+            region: "경북"
+        },
+        {
+            id: 41,
+            title: "경상남도 청년 월세 지원",
+            description: "경남 청년의 주거비 부담 완화",
+            eligibility: "만 19-39세 경남 거주 무주택 청년",
+            amount: "월 최대 12만원 (12개월간)",
+            url: "https://www.gyeongnam.go.kr",
+            region: "경남"
+        },
+        {
+            id: 42,
+            title: "제주특별자치도 청년 월세 지원",
+            description: "제주 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-34세 제주 거주 무주택 청년",
+            amount: "월 최대 20만원 (12개월간)",
+            url: "https://www.jeju.go.kr",
+            region: "제주"
         }
     ],
     employment: [
@@ -166,6 +274,114 @@ const policyDatabase = {
             amount: "취업 성공 시 100만원 지원",
             url: "https://www.chuncheon.go.kr",
             region: "강원"
+        },
+        {
+            id: 51,
+            title: "대구 청년 구직활동 지원금",
+            description: "대구시 미취업 청년의 구직활동 지원",
+            eligibility: "만 18-34세 대구 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.daegu.go.kr",
+            region: "대구"
+        },
+        {
+            id: 52,
+            title: "광주 청년 일경험 드림",
+            description: "광주시 청년 직무경험 및 취업 연계 프로그램",
+            eligibility: "만 18-39세 광주 거주 미취업 청년",
+            amount: "월 180만원 (최대 5개월)",
+            url: "https://www.gwangju.go.kr",
+            region: "광주"
+        },
+        {
+            id: 53,
+            title: "대전 청년 취업희망카드",
+            description: "대전시 청년 구직활동 종합 지원",
+            eligibility: "만 18-34세 대전 거주 구직 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.daejeon.go.kr",
+            region: "대전"
+        },
+        {
+            id: 54,
+            title: "울산 청년 구직활동 지원금",
+            description: "울산시 미취업 청년 취업 준비 지원",
+            eligibility: "만 18-34세 울산 거주 미취업 청년",
+            amount: "월 60만원 (최대 6개월)",
+            url: "https://www.ulsan.go.kr",
+            region: "울산"
+        },
+        {
+            id: 55,
+            title: "세종 청년 취업 지원금",
+            description: "세종시 청년 구직활동 및 역량강화 지원",
+            eligibility: "만 18-34세 세종 거주 구직 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.sejong.go.kr",
+            region: "세종"
+        },
+        {
+            id: 56,
+            title: "충북 청년 구직활동 지원금",
+            description: "충북 미취업 청년의 취업 준비 지원",
+            eligibility: "만 18-34세 충북 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.chungbuk.go.kr",
+            region: "충북"
+        },
+        {
+            id: 57,
+            title: "충남 청년 희망디딤돌",
+            description: "충남 청년 구직활동 종합 지원 사업",
+            eligibility: "만 18-34세 충남 거주 구직 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.chungnam.go.kr",
+            region: "충남"
+        },
+        {
+            id: 58,
+            title: "전북 청년 구직활동 지원금",
+            description: "전북 미취업 청년의 취업 활동 지원",
+            eligibility: "만 18-34세 전북 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.jeonbuk.go.kr",
+            region: "전북"
+        },
+        {
+            id: 59,
+            title: "전남 청년 구직수당",
+            description: "전남 청년의 구직활동 및 생활안정 지원",
+            eligibility: "만 18-34세 전남 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.jeonnam.go.kr",
+            region: "전남"
+        },
+        {
+            id: 60,
+            title: "경북 청년 구직활동 지원",
+            description: "경북 미취업 청년의 취업 준비 지원",
+            eligibility: "만 18-34세 경북 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.gb.go.kr",
+            region: "경북"
+        },
+        {
+            id: 61,
+            title: "경남 청년 구직활동 지원금",
+            description: "경남 청년의 구직활동 및 역량강화 지원",
+            eligibility: "만 18-34세 경남 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.gyeongnam.go.kr",
+            region: "경남"
+        },
+        {
+            id: 62,
+            title: "제주 청년 수당",
+            description: "제주 미취업 청년의 자립 기반 마련 지원",
+            eligibility: "만 19-34세 제주 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.jeju.go.kr",
+            region: "제주"
         }
     ],
     startup: [
@@ -195,6 +411,114 @@ const policyDatabase = {
             amount: "최대 5천만원",
             url: "https://www.busan.go.kr/startup",
             region: "부산"
+        },
+        {
+            id: 71,
+            title: "대구 청년 창업지원금",
+            description: "대구시 청년 창업가를 위한 사업자금 지원",
+            eligibility: "만 19-39세 대구 거주 예비창업자",
+            amount: "최대 3천만원",
+            url: "https://www.daegu.go.kr",
+            region: "대구"
+        },
+        {
+            id: 72,
+            title: "광주 청년 창업 펀드",
+            description: "광주시 청년 스타트업 육성 지원",
+            eligibility: "만 19-39세 광주 소재 창업 3년 이내",
+            amount: "최대 5천만원",
+            url: "https://www.gwangju.go.kr",
+            region: "광주"
+        },
+        {
+            id: 73,
+            title: "대전 청년 창업 지원금",
+            description: "대전시 청년 창업 활성화 지원 사업",
+            eligibility: "만 19-39세 대전 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.daejeon.go.kr",
+            region: "대전"
+        },
+        {
+            id: 74,
+            title: "울산 청년 CEO 육성사업",
+            description: "울산시 청년 창업가 양성 프로그램",
+            eligibility: "만 19-39세 울산 거주 예비창업자",
+            amount: "최대 3천만원",
+            url: "https://www.ulsan.go.kr",
+            region: "울산"
+        },
+        {
+            id: 75,
+            title: "세종 청년 창업 지원",
+            description: "세종시 청년 스타트업 지원 사업",
+            eligibility: "만 19-39세 세종 거주 창업 3년 이내",
+            amount: "최대 3천만원",
+            url: "https://www.sejong.go.kr",
+            region: "세종"
+        },
+        {
+            id: 76,
+            title: "충북 청년 창업농 지원",
+            description: "충북 청년 농업 창업 지원 사업",
+            eligibility: "만 18-39세 충북 거주 예비 농업인",
+            amount: "최대 3천만원",
+            url: "https://www.chungbuk.go.kr",
+            region: "충북"
+        },
+        {
+            id: 77,
+            title: "충남 청년 창업 지원금",
+            description: "충남 청년 창업 활성화 지원",
+            eligibility: "만 19-39세 충남 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.chungnam.go.kr",
+            region: "충남"
+        },
+        {
+            id: 78,
+            title: "전북 청년 창업 지원",
+            description: "전북 청년 창업가 육성 사업",
+            eligibility: "만 19-39세 전북 거주 창업 3년 이내",
+            amount: "최대 3천만원",
+            url: "https://www.jeonbuk.go.kr",
+            region: "전북"
+        },
+        {
+            id: 79,
+            title: "전남 청년 창업농장",
+            description: "전남 청년 농업 창업 지원 프로그램",
+            eligibility: "만 18-39세 전남 거주 예비 농업인",
+            amount: "최대 3억원 (융자)",
+            url: "https://www.jeonnam.go.kr",
+            region: "전남"
+        },
+        {
+            id: 80,
+            title: "경북 청년 CEO 육성",
+            description: "경북 청년 창업가 양성 지원 사업",
+            eligibility: "만 19-39세 경북 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.gb.go.kr",
+            region: "경북"
+        },
+        {
+            id: 81,
+            title: "경남 청년 창업 지원금",
+            description: "경남 청년 스타트업 육성 지원",
+            eligibility: "만 19-39세 경남 거주 창업 3년 이내",
+            amount: "최대 3천만원",
+            url: "https://www.gyeongnam.go.kr",
+            region: "경남"
+        },
+        {
+            id: 82,
+            title: "제주 청년 창업 지원",
+            description: "제주 청년 창업 생태계 활성화 사업",
+            eligibility: "만 19-39세 제주 거주 예비창업자",
+            amount: "최대 5천만원",
+            url: "https://www.jeju.go.kr",
+            region: "제주"
         }
     ]
 };
@@ -371,13 +695,72 @@ async function processMessage(message) {
 }
 
 function analyzeIntent(message) {
-    // Check for region-specific queries
-    const regions = ['부산', '경기', '인천', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+    // Check for region-specific queries - ALL regions in Korea
+    const regions = ['서울', '부산', '경기', '인천', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
     
-    // Also check for specific cities
-    const cities = ['춘천', '원주', '강릉', '평창', '정선', '철원', '화천', '양구', '인제', '고성', '양양', '홍천', '횡성', '영월', '태백', '삼척', '동해'];
+    // City to region mapping for major cities
+    const cityToRegion = {
+        // 서울
+        '강남': '서울', '강동': '서울', '강북': '서울', '강서': '서울', '관악': '서울',
+        '광진': '서울', '구로': '서울', '금천': '서울', '노원': '서울', '도봉': '서울',
+        '동대문': '서울', '동작': '서울', '마포': '서울', '서대문': '서울', '서초': '서울',
+        '성동': '서울', '성북': '서울', '송파': '서울', '양천': '서울', '영등포': '서울',
+        '용산': '서울', '은평': '서울', '종로': '서울', '중구': '서울', '중랑': '서울',
+        
+        // 경기
+        '수원': '경기', '성남': '경기', '고양': '경기', '용인': '경기', '부천': '경기',
+        '안산': '경기', '안양': '경기', '남양주': '경기', '화성': '경기', '평택': '경기',
+        '의정부': '경기', '시흥': '경기', '파주': '경기', '광명': '경기', '김포': '경기',
+        '군포': '경기', '광주': '경기', '이천': '경기', '양주': '경기', '오산': '경기',
+        '구리': '경기', '안성': '경기', '포천': '경기', '의왕': '경기', '하남': '경기',
+        '여주': '경기', '양평': '경기', '동두천': '경기', '과천': '경기', '가평': '경기', '연천': '경기',
+        
+        // 강원
+        '춘천': '강원', '원주': '강원', '강릉': '강원', '동해': '강원', '태백': '강원',
+        '속초': '강원', '삼척': '강원', '홍천': '강원', '횡성': '강원', '영월': '강원',
+        '평창': '강원', '정선': '강원', '철원': '강원', '화천': '강원', '양구': '강원',
+        '인제': '강원', '고성': '강원', '양양': '강원',
+        
+        // 충북
+        '청주': '충북', '충주': '충북', '제천': '충북', '보은': '충북', '옥천': '충북',
+        '영동': '충북', '증평': '충북', '진천': '충북', '괴산': '충북', '음성': '충북', '단양': '충북',
+        
+        // 충남
+        '천안': '충남', '공주': '충남', '보령': '충남', '아산': '충남', '서산': '충남',
+        '논산': '충남', '계룡': '충남', '당진': '충남', '금산': '충남', '부여': '충남',
+        '서천': '충남', '청양': '충남', '홍성': '충남', '예산': '충남', '태안': '충남',
+        
+        // 전북
+        '전주': '전북', '군산': '전북', '익산': '전북', '정읍': '전북', '남원': '전북',
+        '김제': '전북', '완주': '전북', '진안': '전북', '무주': '전북', '장수': '전북',
+        '임실': '전북', '순창': '전북', '고창': '전북', '부안': '전북',
+        
+        // 전남
+        '목포': '전남', '여수': '전남', '순천': '전남', '나주': '전남', '광양': '전남',
+        '담양': '전남', '곡성': '전남', '구례': '전남', '고흥': '전남', '보성': '전남',
+        '화순': '전남', '장흥': '전남', '강진': '전남', '해남': '전남', '영암': '전남',
+        '무안': '전남', '함평': '전남', '영광': '전남', '장성': '전남', '완도': '전남',
+        '진도': '전남', '신안': '전남',
+        
+        // 경북
+        '포항': '경북', '경주': '경북', '김천': '경북', '안동': '경북', '구미': '경북',
+        '영주': '경북', '영천': '경북', '상주': '경북', '문경': '경북', '경산': '경북',
+        '군위': '경북', '의성': '경북', '청송': '경북', '영양': '경북', '영덕': '경북',
+        '청도': '경북', '고령': '경북', '성주': '경북', '칠곡': '경북', '예천': '경북',
+        '봉화': '경북', '울진': '경북', '울릉': '경북',
+        
+        // 경남
+        '창원': '경남', '진주': '경남', '통영': '경남', '사천': '경남', '김해': '경남',
+        '밀양': '경남', '거제': '경남', '양산': '경남', '의령': '경남', '함안': '경남',
+        '창녕': '경남', '고성': '경남', '남해': '경남', '하동': '경남', '산청': '경남',
+        '함양': '경남', '거창': '경남', '합천': '경남',
+        
+        // 제주
+        '제주시': '제주', '서귀포': '제주', '서귀포시': '제주'
+    };
     
     let region = null;
+    
     // First check for major regions
     for (const r of regions) {
         if (message.includes(r)) {
@@ -388,12 +771,9 @@ function analyzeIntent(message) {
     
     // If no major region found, check for cities and map to their regions
     if (!region) {
-        for (const city of cities) {
+        for (const [city, cityRegion] of Object.entries(cityToRegion)) {
             if (message.includes(city)) {
-                // Map cities to their regions
-                if (['춘천', '원주', '강릉', '평창', '정선', '철원', '화천', '양구', '인제', '고성', '양양', '홍천', '횡성', '영월', '태백', '삼척', '동해'].includes(city)) {
-                    region = '강원';
-                }
+                region = cityRegion;
                 break;
             }
         }
