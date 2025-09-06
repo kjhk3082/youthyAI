@@ -272,7 +272,7 @@ async function fetchFromYouthCenter(districtCode, page = 1) {
             return {
               polyBizSjnm: policy.plcyNm || `청년정책 ${index + 1}`,
               polyBizTy: policy.lclsfNm || '003002001',
-              polyBizCn: policy.plcySprtCn || '청년 지원 정책',
+              polyBizCn: policy.plcyExplnCn || '청년 지원 정책',  // 정책설명내용으로 변경
               polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
               ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
               rqutPrdEnd: endDate,
@@ -302,7 +302,7 @@ async function fetchFromYouthCenter(districtCode, page = 1) {
         return {
           polyBizSjnm: policy.plcyNm || `${districtName} 청년정책 ${index + 1}`,
           polyBizTy: policy.lclsfNm || '003002001',
-          polyBizCn: policy.plcySprtCn || '청년 지원 정책',
+          polyBizCn: policy.plcyExplnCn || '청년 지원 정책',  // 정책설명내용으로 변경
           polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
           ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
           rqutPrdEnd: endDate,
