@@ -28,7 +28,9 @@
     "morgan": "^1.10.0",
     "node-fetch": "^2.7.0",
     "openai": "^5.19.1",
-    "pm2": "^6.0.10"
+    "pm2": "^6.0.10",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

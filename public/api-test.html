@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>District Policies API Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .api-info {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .api-endpoints {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .endpoint code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .policy-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .policy-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .policy-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+        }
+        
+        .policy-header h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .policy-meta {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .badge.hot {
+            background: #f56565;
+        }
+        
+        .policy-body {
+            padding: 15px;
+        }
+        
+        .policy-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .policy-details {
+            display: grid;
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+            min-width: 60px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .error {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ District Policies API</h1>
+            <p>서울시 구별 청년 정책 실시간 데이터 API</p>
+        </div>
+        
+        <div class="api-info">
+            <h2>📚 API Documentation</h2>
+            <p>Swagger UI: <a href="/api-docs" target="_blank">Open API Documentation</a></p>
+            <div class="api-endpoints">
+                <div class="endpoint">
+                    <strong>모든 구 정책</strong><br>
+                    <code>GET /api/district-policies</code>
+                </div>
+                <div class="endpoint">
+                    <strong>특정 구 정책</strong><br>
+                    <code>GET /api/district-policies/:district</code>
+                </div>
+                <div class="endpoint">
+                    <strong>인기 정책</strong><br>
+                    <code>GET /api/hot-policies</code>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="districts">구 선택 (다중 선택 가능)</label>
+                <select id="districts" multiple size="5">
+                    <option value="Gangnam-gu">강남구</option>
+                    <option value="Gangdong-gu">강동구</option>
+                    <option value="Gangbuk-gu">강북구</option>
+                    <option value="Gangseo-gu">강서구</option>
+                    <option value="Gwanak-gu">관악구</option>
+                    <option value="Gwangjin-gu">광진구</option>
+                    <option value="Guro-gu">구로구</option>
+                    <option value="Geumcheon-gu">금천구</option>
+                    <option value="Nowon-gu">노원구</option>
+                    <option value="Dobong-gu">도봉구</option>
+                    <option value="Dongdaemun-gu">동대문구</option>
+                    <option value="Dongjak-gu">동작구</option>
+                    <option value="Mapo-gu">마포구</option>
+                    <option value="Seodaemun-gu">서대문구</option>
+                    <option value="Seocho-gu">서초구</option>
+                    <option value="Seongdong-gu">성동구</option>
+                    <option value="Seongbuk-gu">성북구</option>
+                    <option value="Songpa-gu">송파구</option>
+                    <option value="Yangcheon-gu">양천구</option>
+                    <option value="Yeongdeungpo-gu">영등포구</option>
+                    <option value="Yongsan-gu">용산구</option>
+                    <option value="Eunpyeong-gu">은평구</option>
+                    <option value="Jongno-gu">종로구</option>
+                    <option value="Jung-gu">중구</option>
+                    <option value="Jungnang-gu">중랑구</option>
+                </select>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="fetchPolicies()">선택한 구 정책 조회</button>
+                <button class="btn btn-secondary" onclick="fetchHotPolicies()">인기 정책 조회</button>
+                <button class="btn btn-primary" onclick="fetchAllPolicies()">모든 구 정책 조회</button>
+                <button class="btn btn-danger" onclick="clearResults()">결과 초기화</button>
+            </div>
+        </div>
+        
+        <div id="stats" class="stats" style="display:none;"></div>
+        <div id="results" class="results"></div>
+    </div>
+    
+    <script>
+        // Use relative path for API calls to avoid CORS issues
+        const API_BASE = '';
+        
+        async function fetchPolicies() {
+            const select = document.getElementById('districts');
+            const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+            
+            if (selected.length === 0) {
+                alert('최소 하나의 구를 선택해주세요.');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/district-policies?districts=${selected.join(',')}`);
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        async function fetchAllPolicies() {
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/district-policies`);
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        async function fetchHotPolicies() {
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/hot-policies`);
+                const data = await response.json();
+                displayHotPolicies(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const statsDiv = document.getElementById('stats');
+            
+            // Show stats
+            statsDiv.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${data.metadata.totalPolicies}</div>
+                    <div class="stat-label">총 정책 수</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${data.metadata.districts.length}</div>
+                    <div class="stat-label">조회된 구</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${new Date(data.metadata.lastUpdate).toLocaleTimeString('ko-KR')}</div>
+                    <div class="stat-label">업데이트 시간</div>
+                </div>
+            `;
+            statsDiv.style.display = 'flex';
+            
+            // Display policies
+            resultsDiv.innerHTML = '';
+            
+            Object.entries(data.data).forEach(([district, policies]) => {
+                policies.forEach(policy => {
+                    resultsDiv.appendChild(createPolicyCard(policy));
+                });
+            });
+        }
+        
+        function displayHotPolicies(data) {
+            const resultsDiv = document.getElementById('results');
+            const statsDiv = document.getElementById('stats');
+            
+            statsDiv.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${data.policies.length}</div>
+                    <div class="stat-label">인기 정책 수</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${new Date(data.metadata.lastUpdate).toLocaleTimeString('ko-KR')}</div>
+                    <div class="stat-label">업데이트 시간</div>
+                </div>
+            `;
+            statsDiv.style.display = 'flex';
+            
+            resultsDiv.innerHTML = '';
+            data.policies.forEach(policy => {
+                resultsDiv.appendChild(createPolicyCard(policy));
+            });
+        }
+        
+        function createPolicyCard(policy) {
+            const card = document.createElement('div');
+            card.className = 'policy-card';
+            
+            card.innerHTML = `
+                <div class="policy-header">
+                    <h3>${policy.title}</h3>
+                    <div class="policy-meta">
+                        <span class="badge">${policy.category}</span>
+                        <span class="badge">${policy.district}</span>
+                        ${policy.isHot ? '<span class="badge hot">HOT 🔥</span>' : ''}
+                        <span class="badge">${policy.deadline}</span>
+                    </div>
+                </div>
+                <div class="policy-body">
+                    <div class="policy-description">${policy.description}</div>
+                    <div class="policy-details">
+                        <div class="detail-item">
+                            <span class="detail-label">대상:</span>
+                            <span>${policy.target}</span>
+                        </div>
+                        ${policy.metadata?.supportAmount ? `
+                        <div class="detail-item">
+                            <span class="detail-label">지원금:</span>
+                            <span>${policy.metadata.supportAmount}</span>
+                        </div>` : ''}
+                        ${policy.metadata?.applicationMethod ? `
+                        <div class="detail-item">
+                            <span class="detail-label">신청:</span>
+                            <span>${policy.metadata.applicationMethod}</span>
+                        </div>` : ''}
+                        ${policy.metadata?.applicationUrl ? `
+                        <div class="detail-item">
+                            <span class="detail-label">링크:</span>
+                            <a href="${policy.metadata.applicationUrl}" target="_blank">신청하기 →</a>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function showLoading() {
+            document.getElementById('results').innerHTML = '<div class="loading">데이터를 불러오는 중...</div>';
+            document.getElementById('stats').style.display = 'none';
+        }
+        
+        function showError(message) {
+            document.getElementById('results').innerHTML = `<div class="error">오류: ${message}</div>`;
+            document.getElementById('stats').style.display = 'none';
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('stats').style.display = 'none';
+        }
+        
+        // Load initial data
+        window.onload = () => {
+            // Select Gangnam and Seocho by default
+            document.querySelector('option[value="Gangnam-gu"]').selected = true;
+            document.querySelector('option[value="Seocho-gu"]').selected = true;
+        };
+    </script>
+</body>
+</html>
