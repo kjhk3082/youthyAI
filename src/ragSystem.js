@@ -169,10 +169,56 @@ class RAGSystem {
         documents.forEach((doc, index) => {
             context += `[정책 ${index + 1}]\n`;
             context += `제목: ${doc.title}\n`;
-            context += `내용: ${doc.content}\n`;
-            context += `자격조건: ${doc.eligibility}\n`;
-            context += `지원금액: ${doc.amount}\n`;
-            context += `신청링크: ${doc.url}\n\n`;
+            context += `내용: ${doc.content || doc.summary || ''}\n`;
+            
+            // 자격 조건 상세 표시
+            if (typeof doc.eligibility === 'object') {
+                context += `자격조건:\n`;
+                context += `  - 연령: ${doc.eligibility.age || '제한 없음'}\n`;
+                context += `  - 거주지: ${doc.eligibility.residence || '제한 없음'}\n`;
+                context += `  - 소듍: ${doc.eligibility.income || '제한 없음'}\n`;
+                context += `  - 취업상태: ${doc.eligibility.employment || '무관'}\n`;
+                context += `  - 추가조건: ${doc.eligibility.additional || '없음'}\n`;
+            } else {
+                context += `자격조건: ${doc.eligibility || '제한 없음'}\n`;
+            }
+            
+            // 지원 내용 상세 표시
+            if (doc.support && typeof doc.support === 'object') {
+                context += `지원내용:\n`;
+                context += `  - 내용: ${doc.support.content || ''}\n`;
+                context += `  - 규모: ${doc.support.scale || ''}\n`;
+                if (doc.support.details) {
+                    context += `  - 상세: ${doc.support.details}\n`;
+                }
+            } else {
+                context += `지원금액: ${doc.amount || doc.support || ''}\n`;
+            }
+            
+            // 신청 기간 정보 (중요!)
+            if (doc.period) {
+                context += `신청기간:\n`;
+                if (doc.period.application?.display) {
+                    context += `  - 신청: ${doc.period.application.display}\n`;
+                }
+                if (doc.period.operation?.display) {
+                    context += `  - 운영: ${doc.period.operation.display}\n`;
+                }
+            } else if (doc.applicationPeriod) {
+                context += `신청기간: ${doc.applicationPeriod}\n`;
+            }
+            
+            // 신청 방법
+            if (doc.application) {
+                context += `신청방법: ${doc.application.method || doc.applicationMethod || '방문 신청'}\n`;
+                if (doc.application.url) {
+                    context += `신청링크: ${doc.application.url}\n`;
+                }
+            } else {
+                context += `신청링크: ${doc.url || 'https://www.youthcenter.go.kr'}\n`;
+            }
+            
+            context += '\n';
         });
         
         return context;
@@ -188,6 +234,7 @@ class RAGSystem {
             const systemPrompt = `당신은 한국 청년 정책 전문 AI 어시스턴트 '유씨'입니다. 
             친절하고 정확하게 청년 정책 정보를 제공하세요.
             제공된 컨텍스트를 바탕으로 답변하되, 없는 정보는 만들지 마세요.
+            특히 신청 기간과 운영 기간을 명확히 안내해주세요.
             답변은 구조화하여 읽기 쉽게 작성하세요.`;
 
             const userPrompt = `컨텍스트:\n${context}\n\n질문: ${query}`;
@@ -248,30 +295,56 @@ class RAGSystem {
 
     async processQuery(query) {
         try {
-            // 1. 유사한 문서 검색
+            // 1. 유사한 문서 검색 (상세 정보 포함)
             const similarDocuments = await this.searchSimilarDocuments(query);
             
-            // 2. 컨텍스트 구축
+            // 2. 상세 정보가 필요한 경우 추가 조회
+            if (similarDocuments.length > 0 && similarDocuments[0].id) {
+                // 상위 1개 정책에 대해 상세 정보 조회 시도
+                try {
+                    const detailedPolicy = await this.dataFetcher.getPolicyFullDetail(similarDocuments[0].id);
+                    if (detailedPolicy && detailedPolicy.period) {
+                        // 상세 정보로 업데이트
+                        similarDocuments[0] = { ...similarDocuments[0], ...detailedPolicy };
+                    }
+                } catch (detailError) {
+                    console.log('⚠️ Could not fetch detailed info:', detailError.message);
+                }
+            }
+            
+            // 3. 컨텍스트 구축 (상세 정보 포함)
             const context = this.buildContext(similarDocuments);
             
-            // 3. 응답 생성
+            // 4. 응답 생성
             const message = await this.generateResponse(query, context);
             
-            // 4. 참조 링크 생성
-            const references = similarDocuments.map(doc => ({
-                title: doc.title,
-                url: doc.url,
-                snippet: doc.content.substring(0, 100) + '...'
-            }));
+            // 5. 참조 링크 생성 (개선된 버전)
+            const references = similarDocuments.map(doc => {
+                const snippet = doc.content || doc.summary || '';
+                const url = doc.application?.url || doc.url || 'https://www.youthcenter.go.kr';
+                
+                // 신청 기간 정보 추가
+                let displaySnippet = snippet.substring(0, 100) + '...';
+                if (doc.period?.application?.display) {
+                    displaySnippet += ` [신청기간: ${doc.period.application.display}]`;
+                }
+                
+                return {
+                    title: doc.title,
+                    url: url,
+                    snippet: displaySnippet
+                };
+            });
             
-            // 5. 후속 질문 생성
+            // 6. 후속 질문 생성
             const followUpQuestions = this.generateFollowUpQuestions(similarDocuments);
             
             return {
                 message,
                 references,
                 followUpQuestions,
-                documents: similarDocuments
+                documents: similarDocuments,
+                hasDetailedInfo: similarDocuments.some(doc => doc.period?.application?.display)
             };
         } catch (error) {
             console.error('RAG System Error:', error);
