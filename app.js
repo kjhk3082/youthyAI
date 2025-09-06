@@ -39,9 +39,10 @@ const policyDatabase = {
             id: 1,
             title: "서울시 청년 월세 지원",
             description: "만 19-39세 무주택 청년에게 월 최대 20만원 지원",
-            eligibility: "중위소득 150% 이하",
+            eligibility: "중위소듍 150% 이하",
             amount: "월 20만원 (최대 12개월)",
-            url: "https://youth.seoul.go.kr"
+            url: "https://youth.seoul.go.kr",
+            region: "서울"
         },
         {
             id: 2,
@@ -49,7 +50,35 @@ const policyDatabase = {
             description: "청년 전세자금 저리 대출",
             eligibility: "만 34세 이하 무주택자",
             amount: "최대 2억원",
-            url: "https://nhuf.molit.go.kr"
+            url: "https://nhuf.molit.go.kr",
+            region: "전국"
+        },
+        {
+            id: 11,
+            title: "부산 청년 월세 지원",
+            description: "부산시 거주 청년의 주거비 부담 완화",
+            eligibility: "만 19-34세 부산 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.busan.go.kr/young",
+            region: "부산"
+        },
+        {
+            id: 12,
+            title: "경기도 청년 전월세 보증금 대출",
+            description: "경기도 거주 청년을 위한 전월세 보증금 대출",
+            eligibility: "만 19-34세 경기도 거주 무주택 청년",
+            amount: "최대 7천만원, 연 1.2%",
+            url: "https://youth.gg.go.kr",
+            region: "경기"
+        },
+        {
+            id: 13,
+            title: "인천 청년 월세 지원",
+            description: "인천시 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-39세 인천 거주 무주택 청년",
+            amount: "월 최대 15만원 (10개월간)",
+            url: "https://www.incheon.go.kr",
+            region: "인천"
         }
     ],
     employment: [
@@ -59,7 +88,8 @@ const policyDatabase = {
             description: "중소기업 인턴 근무 기회 제공",
             eligibility: "만 15-34세 미취업 청년",
             amount: "월 180만원 이상",
-            url: "https://www.work.go.kr"
+            url: "https://www.work.go.kr",
+            region: "전국"
         },
         {
             id: 4,
@@ -67,7 +97,35 @@ const policyDatabase = {
             description: "IT, 디자인, 마케팅 무료 교육",
             eligibility: "만 34세 이하 구직자",
             amount: "교육비 전액 + 훈련수당",
-            url: "https://www.hrd.go.kr"
+            url: "https://www.hrd.go.kr",
+            region: "전국"
+        },
+        {
+            id: 14,
+            title: "부산 청년 구직활동 지원금",
+            description: "부산시 미취업 청년의 구직활동 지원",
+            eligibility: "만 18-34세 부산 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.busan.go.kr/young",
+            region: "부산"
+        },
+        {
+            id: 15,
+            title: "경기도 청년 면접수당",
+            description: "경기도 거주 청년의 면접 활동 비용 지원",
+            eligibility: "만 18-34세 경기도 거주 구직활동 청년",
+            amount: "1회 5만원 (최대 6회)",
+            url: "https://jobaba.net",
+            region: "경기"
+        },
+        {
+            id: 16,
+            title: "서울시 청년수당",
+            description: "미취업 청년 구직활동 지원",
+            eligibility: "만 19-34세, 중위소듍 150% 이하",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://youth.seoul.go.kr",
+            region: "서울"
         }
     ],
     startup: [
@@ -77,7 +135,26 @@ const policyDatabase = {
             description: "예비창업자 및 초기창업자 지원",
             eligibility: "만 39세 이하 창업 3년 이내",
             amount: "최대 1억원",
-            url: "https://www.k-startup.go.kr"
+            url: "https://www.k-startup.go.kr",
+            region: "전국"
+        },
+        {
+            id: 17,
+            title: "경기도 청년 창업지원금",
+            description: "경기도 청년 창업가를 위한 초기 사업자금 지원",
+            eligibility: "만 19-39세 경기도 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.gsp.or.kr",
+            region: "경기"
+        },
+        {
+            id: 18,
+            title: "부산 청년 창업 펀드",
+            description: "부산시 청년 스타트업을 위한 투자 지원",
+            eligibility: "만 19-39세 부산 소재 창업 3년 이내 기업",
+            amount: "최대 5천만원",
+            url: "https://www.busan.go.kr/startup",
+            region: "부산"
         }
     ]
 };
@@ -232,8 +309,9 @@ async function processMessage(message) {
     // Analyze message intent
     const intent = analyzeIntent(lowerMessage);
     
-    // Get relevant policies
-    const relevantPolicies = findRelevantPolicies(lowerMessage);
+    // Get relevant policies based on intent and region
+    const region = intent.region || null;
+    const relevantPolicies = findRelevantPolicies(lowerMessage, region);
     
     // Generate response based on intent and policies
     const response = generateResponse(intent, relevantPolicies, message);
@@ -242,30 +320,44 @@ async function processMessage(message) {
 }
 
 function analyzeIntent(message) {
-    if (message.includes('월세') || message.includes('주거') || message.includes('집')) {
-        return 'housing';
-    } else if (message.includes('전세') || message.includes('전세자금')) {
-        return 'jeonse';
-    } else if (message.includes('청년수당') || message.includes('수당')) {
-        return 'allowance';
-    } else if (message.includes('신청') && (message.includes('방법') || message.includes('어떻게'))) {
-        return 'application';
-    } else if (message.includes('취업') || message.includes('일자리') || message.includes('인턴')) {
-        return 'employment';
-    } else if (message.includes('창업') || message.includes('사업') || message.includes('스타트업')) {
-        return 'startup';
-    } else if (message.includes('인기') || message.includes('추천') || message.includes('best')) {
-        return 'popular';
-    } else if (message.includes('안녕') || message.includes('반가')) {
-        return 'greeting';
-    } else if (message.includes('감사') || message.includes('고마')) {
-        return 'thanks';
-    } else {
-        return 'general';
+    // Check for region-specific queries
+    const regions = ['부산', '경기', '인천', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+    let region = null;
+    for (const r of regions) {
+        if (message.includes(r)) {
+            region = r;
+            break;
+        }
     }
+    
+    let type = 'general';
+    if (message.includes('월세') || message.includes('주거') || message.includes('집')) {
+        type = 'housing';
+    } else if (message.includes('전세') || message.includes('전세자금')) {
+        type = 'jeonse';
+    } else if (message.includes('청년수당') || message.includes('수당')) {
+        type = 'allowance';
+    } else if (message.includes('신청') && (message.includes('방법') || message.includes('어떻게'))) {
+        type = 'application';
+    } else if (message.includes('취업') || message.includes('일자리') || message.includes('인턴')) {
+        type = 'employment';
+    } else if (message.includes('창업') || message.includes('사업') || message.includes('스타트업')) {
+        type = 'startup';
+    } else if (message.includes('인기') || message.includes('추천') || message.includes('best')) {
+        type = 'popular';
+    } else if (message.includes('안녕') || message.includes('반가')) {
+        type = 'greeting';
+    } else if (message.includes('감사') || message.includes('고마')) {
+        type = 'thanks';
+    } else if (region && !message.includes('서울')) {
+        // If region is mentioned but no specific policy type, show regional policies
+        type = 'regional';
+    }
+    
+    return { type, region };
 }
 
-function findRelevantPolicies(message) {
+function findRelevantPolicies(message, region = null) {
     const allPolicies = Object.values(policyDatabase).flat();
     const relevant = [];
     
@@ -273,12 +365,17 @@ function findRelevantPolicies(message) {
     const keywords = message.split(' ').filter(word => word.length > 2);
     
     allPolicies.forEach(policy => {
+        // Filter by region if specified
+        if (region && policy.region && policy.region !== '전국' && policy.region !== region) {
+            return;
+        }
+        
         const policyText = `${policy.title} ${policy.description}`.toLowerCase();
         const matches = keywords.filter(keyword => 
             policyText.includes(keyword.toLowerCase())
         ).length;
         
-        if (matches > 0) {
+        if (matches > 0 || region === policy.region) {
             relevant.push({ ...policy, relevance: matches });
         }
     });
@@ -286,7 +383,7 @@ function findRelevantPolicies(message) {
     // Sort by relevance
     relevant.sort((a, b) => b.relevance - a.relevance);
     
-    return relevant.slice(0, 3); // Return top 3 most relevant
+    return relevant.slice(0, 5); // Return top 5 most relevant
 }
 
 function generateResponse(intent, policies, originalMessage) {
@@ -294,7 +391,49 @@ function generateResponse(intent, policies, originalMessage) {
     let references = [];
     let followUpQuestions = [];
     
-    switch (intent) {
+    // Handle regional queries
+    if (intent.type === 'regional' && intent.region) {
+        const regionName = intent.region;
+        const regionalPolicies = policies.filter(p => p.region === regionName || p.region === '전국');
+        
+        if (regionalPolicies.length > 0) {
+            message = `### 🏛️ ${regionName} 청년 정책\n\n`;
+            message += `${regionName} 지역 청년들을 위한 다양한 지원 정책을 안내해드립니다.\n\n`;
+            
+            regionalPolicies.forEach((policy) => {
+                message += `📍 **${policy.title}**\n\n`;
+                message += `${policy.description}\n\n`;
+                if (policy.amount) message += `지원금액: ${policy.amount}\n\n`;
+                if (policy.eligibility) message += `자격조건: ${policy.eligibility}\n\n`;
+                message += '\n---\n\n';
+                
+                references.push({
+                    title: policy.title,
+                    url: policy.url || '#',
+                    snippet: policy.description
+                });
+            });
+            
+            followUpQuestions = [
+                `${regionName} 주거 지원 정책 자세히 알려주세요`,
+                `${regionName} 취업 지원 프로그램은?`,
+                `${regionName} 창업 지원금 신청 방법은?`
+            ];
+        } else {
+            message = `죄송합니다. 현재 ${regionName} 지역의 청년 정책 정보가 준비되어 있지 않습니다.\n\n`;
+            message += `대신 전국 단위로 시행되는 청년 정책을 안내해드릴 수 있습니다.`;
+            
+            followUpQuestions = [
+                '전국 청년 주거 지원 정책 알려주세요',
+                '청년 취업 지원 프로그램 추천해주세요',
+                '청년 창업 지원금 정보가 궁금해요'
+            ];
+        }
+        
+        return { message, references, followUpQuestions };
+    }
+    
+    switch (intent.type) {
         case 'greeting':
             message = '안녕하세요! 유씨 AI 챗봇입니다. 😊\n\n청년 정책에 대한 궁금한 점을 물어보세요. 주거, 취업, 창업, 교육 등 다양한 분야의 정책 정보를 제공해드립니다.';
             followUpQuestions = [

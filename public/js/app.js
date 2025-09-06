@@ -405,9 +405,6 @@ class YouthyChat {
     formatMessage(text) {
         // Enhanced formatting with beautiful blue highlights
         
-        // First, apply blue highlights to important information
-        text = this.applyBlueHighlights(text);
-        
         // Headers
         text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
         text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>');
@@ -420,7 +417,9 @@ class YouthyChat {
             
             // Apply formatting to content
             processedContent = processedContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            processedContent = processedContent.replace(/•\s*(.+?)(?=\n|•|$)/g, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
+            processedContent = processedContent.replace(/•\s*(.+?)(?=\n|•|$)/g, (m, p1) => {
+                return `<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>${p1}</span></div>`;
+            });
             processedContent = processedContent.replace(/\n/g, '<br>');
             
             return `<div class="policy-card">
@@ -442,8 +441,15 @@ class YouthyChat {
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         
         // Bullet points with better spacing (for remaining unprocessed bullets)
-        text = text.replace(/•\s*(.+?)(?=\n|•|$)/g, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
-        text = text.replace(/-\s*(.+?)(?=\n|-|$)/g, '<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>$1</span></div>');
+        text = text.replace(/•\s*(.+?)(?=\n|•|$)/g, (m, p1) => {
+            return `<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>${p1}</span></div>`;
+        });
+        text = text.replace(/-\s*(.+?)(?=\n|-|$)/g, (m, p1) => {
+            return `<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>${p1}</span></div>`;
+        });
+        
+        // Apply blue highlights AFTER structure formatting
+        text = this.applyBlueHighlights(text);
         
         // Line breaks (for remaining unprocessed line breaks)
         text = text.replace(/\n/g, '<br>');
@@ -452,6 +458,17 @@ class YouthyChat {
     }
     
     applyBlueHighlights(text) {
+        // Protect HTML tags from being corrupted
+        const htmlProtected = [];
+        let protectedText = text;
+        
+        // Temporarily replace HTML tags with placeholders
+        protectedText = protectedText.replace(/<[^>]+>/g, (match) => {
+            const placeholder = `__HTML_${htmlProtected.length}__`;
+            htmlProtected.push(match);
+            return placeholder;
+        });
+        
         // Highlight important keywords and amounts
         const highlightPatterns = [
             // Money amounts
@@ -465,13 +482,18 @@ class YouthyChat {
         ];
         
         highlightPatterns.forEach(pattern => {
-            text = text.replace(pattern, '<span class="highlight-blue">$1</span>');
+            protectedText = protectedText.replace(pattern, '<span class="highlight-blue">$1</span>');
         });
         
         // Simple contact info formatting
-        text = text.replace(/📞\s*([\d-]+)/g, '<span class="policy-contact">📞 $1</span>');
+        protectedText = protectedText.replace(/📞\s*([\d-]+)/g, '<span class="policy-contact">📞 $1</span>');
         
-        return text;
+        // Restore HTML tags
+        htmlProtected.forEach((html, index) => {
+            protectedText = protectedText.replace(`__HTML_${index}__`, html);
+        });
+        
+        return protectedText;
     }
 
     createScrapButton(messageId, messageText) {
