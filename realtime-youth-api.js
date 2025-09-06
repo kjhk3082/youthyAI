@@ -13,6 +13,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Import district policies API
+const districtPoliciesAPI = require('./district-policies-api');
+
 // Initialize OpenAI with GPT-4
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -30,6 +33,9 @@ app.use(morgan('combined'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
+
+// Mount district policies API
+app.use('/api', districtPoliciesAPI);
 
 // Current date for filtering expired policies
 const CURRENT_DATE = new Date();

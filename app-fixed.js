@@ -8,9 +8,9 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// RAG System import - delayed initialization
+// RAG System import
 const RAGSystem = require('./src/ragSystem');
-let ragSystem;
+const ragSystem = new RAGSystem();
 
 // Search Service import for enhanced responses
 const SearchService = require('./services/searchService');
@@ -575,9 +575,6 @@ app.post('/api/chat', async (req, res) => {
         } else {
             // Use RAG System for response
             console.log('🤖 Using RAG System for response generation');
-            if (!ragSystem) {
-                ragSystem = new RAGSystem();
-            }
             const response = await ragSystem.processQuery(message);
             
             // Log AI response
@@ -1721,7 +1718,7 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
 });
 
-// Start server - Always start in any environment
+// Start server - Fixed for PM2 and sandbox environments
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 YOUTHY AI Server is running on http://localhost:${PORT}`);
     console.log(`📱 Test page available at http://localhost:${PORT}/test`);
