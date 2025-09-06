@@ -1,0 +1,1729 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const compression = require('compression');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const path = require('path');
+const fs = require('fs');
+require('dotenv').config();
+
+// RAG System import
+const RAGSystem = require('./src/ragSystem');
+const ragSystem = new RAGSystem();
+
+// Search Service import for enhanced responses
+const SearchService = require('./services/searchService');
+const searchService = new SearchService();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(helmet({
+    contentSecurityPolicy: false,
+}));
+app.use(compression());
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(morgan('combined'));
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/css', express.static(path.join(__dirname, 'public/css')));
+app.use('/js', express.static(path.join(__dirname, 'public/js')));
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+
+// In-memory storage for demo (replace with database in production)
+const chatHistory = [];
+const policyDatabase = {
+    housing: [
+        {
+            id: 1,
+            title: "서울시 청년 월세 지원",
+            description: "만 19-39세 무주택 청년에게 월 최대 20만원 지원",
+            eligibility: "중위소득 150% 이하",
+            amount: "월 20만원 (최대 12개월)",
+            url: "https://youth.seoul.go.kr",
+            region: "서울"
+        },
+        {
+            id: 2,
+            title: "전세자금 대출 지원",
+            description: "청년 전세자금 저리 대출",
+            eligibility: "만 34세 이하 무주택자",
+            amount: "최대 2억원",
+            url: "https://nhuf.molit.go.kr",
+            region: "전국"
+        },
+        {
+            id: 11,
+            title: "부산 청년 월세 지원",
+            description: "부산시 거주 청년의 주거비 부담 완화",
+            eligibility: "만 19-34세 부산 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.busan.go.kr/young",
+            region: "부산"
+        },
+        {
+            id: 12,
+            title: "경기도 청년 전월세 보증금 대출",
+            description: "경기도 거주 청년을 위한 전월세 보증금 대출",
+            eligibility: "만 19-34세 경기도 거주 무주택 청년",
+            amount: "최대 7천만원, 연 1.2%",
+            url: "https://youth.gg.go.kr",
+            region: "경기"
+        },
+        {
+            id: 13,
+            title: "인천 청년 월세 지원",
+            description: "인천시 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-39세 인천 거주 무주택 청년",
+            amount: "월 최대 15만원 (10개월간)",
+            url: "https://www.incheon.go.kr",
+            region: "인천"
+        },
+        {
+            id: 21,
+            title: "강원도 청년 월세 지원",
+            description: "강원도 청년의 주거 안정을 위한 월세 지원 사업",
+            eligibility: "만 19-34세 강원도 거주 무주택 청년",
+            amount: "월 최대 15만원 (12개월간)",
+            url: "https://www.provin.gangwon.kr",
+            region: "강원"
+        },
+        {
+            id: 22,
+            title: "춘천시 청년 창업 지원",
+            description: "춘천시 청년 창업가를 위한 창업 지원금",
+            eligibility: "만 19-39세 춘천시 거주 예비창업자",
+            amount: "최대 3천만원",
+            url: "https://www.chuncheon.go.kr",
+            region: "강원"
+        },
+        {
+            id: 31,
+            title: "대구광역시 청년 월세 지원",
+            description: "대구시 청년의 주거비 부담 완화를 위한 월세 지원",
+            eligibility: "만 19-34세 대구 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.daegu.go.kr",
+            region: "대구"
+        },
+        {
+            id: 32,
+            title: "광주광역시 청년 월세 지원",
+            description: "광주시 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-39세 광주 거주 무주택 청년",
+            amount: "월 최대 15만원 (12개월간)",
+            url: "https://www.gwangju.go.kr",
+            region: "광주"
+        },
+        {
+            id: 33,
+            title: "대전광역시 청년 월세 지원",
+            description: "대전시 청년의 주거 안정을 위한 월세 지원",
+            eligibility: "만 19-34세 대전 거주 무주택 청년",
+            amount: "월 최대 12만원 (12개월간)",
+            url: "https://www.daejeon.go.kr",
+            region: "대전"
+        },
+        {
+            id: 34,
+            title: "울산광역시 청년 전월세 보증금 대출",
+            description: "울산시 청년을 위한 전월세 보증금 대출 지원",
+            eligibility: "만 19-34세 울산 거주 무주택 청년",
+            amount: "최대 5천만원, 연 1.5%",
+            url: "https://www.ulsan.go.kr",
+            region: "울산"
+        },
+        {
+            id: 35,
+            title: "세종특별자치시 청년 월세 지원",
+            description: "세종시 청년의 주거비 부담 완화",
+            eligibility: "만 19-39세 세종 거주 무주택 청년",
+            amount: "월 최대 20만원 (12개월간)",
+            url: "https://www.sejong.go.kr",
+            region: "세종"
+        },
+        {
+            id: 36,
+            title: "충청북도 청년 월세 지원",
+            description: "충북 청년의 주거 안정을 위한 월세 지원",
+            eligibility: "만 19-34세 충북 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.chungbuk.go.kr",
+            region: "충북"
+        },
+        {
+            id: 37,
+            title: "충청남도 청년 주거비 지원",
+            description: "충남 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-39세 충남 거주 무주택 청년",
+            amount: "월 최대 15만원 (10개월간)",
+            url: "https://www.chungnam.go.kr",
+            region: "충남"
+        },
+        {
+            id: 38,
+            title: "전라북도 청년 월세 지원",
+            description: "전북 청년의 주거비 부담 완화 사업",
+            eligibility: "만 19-34세 전북 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.jeonbuk.go.kr",
+            region: "전북"
+        },
+        {
+            id: 39,
+            title: "전라남도 청년 주거비 지원",
+            description: "전남 청년의 안정적인 자립 기반 마련",
+            eligibility: "만 19-39세 전남 거주 무주택 청년",
+            amount: "월 최대 15만원 (12개월간)",
+            url: "https://www.jeonnam.go.kr",
+            region: "전남"
+        },
+        {
+            id: 40,
+            title: "경상북도 청년 월세 지원",
+            description: "경북 청년의 주거 안정을 위한 지원",
+            eligibility: "만 19-34세 경북 거주 무주택 청년",
+            amount: "월 최대 10만원 (12개월간)",
+            url: "https://www.gb.go.kr",
+            region: "경북"
+        },
+        {
+            id: 41,
+            title: "경상남도 청년 월세 지원",
+            description: "경남 청년의 주거비 부담 완화",
+            eligibility: "만 19-39세 경남 거주 무주택 청년",
+            amount: "월 최대 12만원 (12개월간)",
+            url: "https://www.gyeongnam.go.kr",
+            region: "경남"
+        },
+        {
+            id: 42,
+            title: "제주특별자치도 청년 월세 지원",
+            description: "제주 청년의 안정적인 주거 생활 지원",
+            eligibility: "만 19-34세 제주 거주 무주택 청년",
+            amount: "월 최대 20만원 (12개월간)",
+            url: "https://www.jeju.go.kr",
+            region: "제주"
+        }
+    ],
+    employment: [
+        {
+            id: 3,
+            title: "청년 인턴십 프로그램",
+            description: "중소기업 인턴 근무 기회 제공",
+            eligibility: "만 15-34세 미취업 청년",
+            amount: "월 180만원 이상",
+            url: "https://www.work.go.kr",
+            region: "전국"
+        },
+        {
+            id: 4,
+            title: "직업훈련 프로그램",
+            description: "IT, 디자인, 마케팅 무료 교육",
+            eligibility: "만 34세 이하 구직자",
+            amount: "교육비 전액 + 훈련수당",
+            url: "https://www.hrd.go.kr",
+            region: "전국"
+        },
+        {
+            id: 14,
+            title: "부산 청년 구직활동 지원금",
+            description: "부산시 미취업 청년의 구직활동 지원",
+            eligibility: "만 18-34세 부산 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.busan.go.kr/young",
+            region: "부산"
+        },
+        {
+            id: 15,
+            title: "경기도 청년 면접수당",
+            description: "경기도 거주 청년의 면접 활동 비용 지원",
+            eligibility: "만 18-34세 경기도 거주 구직활동 청년",
+            amount: "1회 5만원 (최대 6회)",
+            url: "https://jobaba.net",
+            region: "경기"
+        },
+        {
+            id: 16,
+            title: "서울시 청년수당",
+            description: "미취업 청년 구직활동 지원",
+            eligibility: "만 19-34세, 중위소득 150% 이하",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://youth.seoul.go.kr",
+            region: "서울"
+        },
+        {
+            id: 23,
+            title: "강원도 청년 구직활동 지원금",
+            description: "강원도 미취업 청년의 구직활동 지원",
+            eligibility: "만 18-34세 강원도 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.provin.gangwon.kr",
+            region: "강원"
+        },
+        {
+            id: 24,
+            title: "춘천시 청년 일자리 지원",
+            description: "춘천시 청년 취업 지원 프로그램",
+            eligibility: "만 18-39세 춘천시 거주 청년",
+            amount: "취업 성공 시 100만원 지원",
+            url: "https://www.chuncheon.go.kr",
+            region: "강원"
+        },
+        {
+            id: 51,
+            title: "대구 청년 구직활동 지원금",
+            description: "대구시 미취업 청년의 구직활동 지원",
+            eligibility: "만 18-34세 대구 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.daegu.go.kr",
+            region: "대구"
+        },
+        {
+            id: 52,
+            title: "광주 청년 일경험 드림",
+            description: "광주시 청년 직무경험 및 취업 연계 프로그램",
+            eligibility: "만 18-39세 광주 거주 미취업 청년",
+            amount: "월 180만원 (최대 5개월)",
+            url: "https://www.gwangju.go.kr",
+            region: "광주"
+        },
+        {
+            id: 53,
+            title: "대전 청년 취업희망카드",
+            description: "대전시 청년 구직활동 종합 지원",
+            eligibility: "만 18-34세 대전 거주 구직 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.daejeon.go.kr",
+            region: "대전"
+        },
+        {
+            id: 54,
+            title: "울산 청년 구직활동 지원금",
+            description: "울산시 미취업 청년 취업 준비 지원",
+            eligibility: "만 18-34세 울산 거주 미취업 청년",
+            amount: "월 60만원 (최대 6개월)",
+            url: "https://www.ulsan.go.kr",
+            region: "울산"
+        },
+        {
+            id: 55,
+            title: "세종 청년 취업 지원금",
+            description: "세종시 청년 구직활동 및 역량강화 지원",
+            eligibility: "만 18-34세 세종 거주 구직 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.sejong.go.kr",
+            region: "세종"
+        },
+        {
+            id: 56,
+            title: "충북 청년 구직활동 지원금",
+            description: "충북 미취업 청년의 취업 준비 지원",
+            eligibility: "만 18-34세 충북 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.chungbuk.go.kr",
+            region: "충북"
+        },
+        {
+            id: 57,
+            title: "충남 청년 희망디딤돌",
+            description: "충남 청년 구직활동 종합 지원 사업",
+            eligibility: "만 18-34세 충남 거주 구직 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.chungnam.go.kr",
+            region: "충남"
+        },
+        {
+            id: 58,
+            title: "전북 청년 구직활동 지원금",
+            description: "전북 미취업 청년의 취업 활동 지원",
+            eligibility: "만 18-34세 전북 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.jeonbuk.go.kr",
+            region: "전북"
+        },
+        {
+            id: 59,
+            title: "전남 청년 구직수당",
+            description: "전남 청년의 구직활동 및 생활안정 지원",
+            eligibility: "만 18-34세 전남 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.jeonnam.go.kr",
+            region: "전남"
+        },
+        {
+            id: 60,
+            title: "경북 청년 구직활동 지원",
+            description: "경북 미취업 청년의 취업 준비 지원",
+            eligibility: "만 18-34세 경북 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.gb.go.kr",
+            region: "경북"
+        },
+        {
+            id: 61,
+            title: "경남 청년 구직활동 지원금",
+            description: "경남 청년의 구직활동 및 역량강화 지원",
+            eligibility: "만 18-34세 경남 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.gyeongnam.go.kr",
+            region: "경남"
+        },
+        {
+            id: 62,
+            title: "제주 청년 수당",
+            description: "제주 미취업 청년의 자립 기반 마련 지원",
+            eligibility: "만 19-34세 제주 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.jeju.go.kr",
+            region: "제주"
+        }
+    ],
+    startup: [
+        {
+            id: 5,
+            title: "청년 창업 지원금",
+            description: "예비창업자 및 초기창업자 지원",
+            eligibility: "만 39세 이하 창업 3년 이내",
+            amount: "최대 1억원",
+            url: "https://www.k-startup.go.kr",
+            region: "전국"
+        },
+        {
+            id: 17,
+            title: "경기도 청년 창업지원금",
+            description: "경기도 청년 창업가를 위한 초기 사업자금 지원",
+            eligibility: "만 19-39세 경기도 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.gsp.or.kr",
+            region: "경기"
+        },
+        {
+            id: 18,
+            title: "부산 청년 창업 펀드",
+            description: "부산시 청년 스타트업을 위한 투자 지원",
+            eligibility: "만 19-39세 부산 소재 창업 3년 이내 기업",
+            amount: "최대 5천만원",
+            url: "https://www.busan.go.kr/startup",
+            region: "부산"
+        },
+        {
+            id: 71,
+            title: "대구 청년 창업지원금",
+            description: "대구시 청년 창업가를 위한 사업자금 지원",
+            eligibility: "만 19-39세 대구 거주 예비창업자",
+            amount: "최대 3천만원",
+            url: "https://www.daegu.go.kr",
+            region: "대구"
+        },
+        {
+            id: 72,
+            title: "광주 청년 창업 펀드",
+            description: "광주시 청년 스타트업 육성 지원",
+            eligibility: "만 19-39세 광주 소재 창업 3년 이내",
+            amount: "최대 5천만원",
+            url: "https://www.gwangju.go.kr",
+            region: "광주"
+        },
+        {
+            id: 73,
+            title: "대전 청년 창업 지원금",
+            description: "대전시 청년 창업 활성화 지원 사업",
+            eligibility: "만 19-39세 대전 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.daejeon.go.kr",
+            region: "대전"
+        },
+        {
+            id: 74,
+            title: "울산 청년 CEO 육성사업",
+            description: "울산시 청년 창업가 양성 프로그램",
+            eligibility: "만 19-39세 울산 거주 예비창업자",
+            amount: "최대 3천만원",
+            url: "https://www.ulsan.go.kr",
+            region: "울산"
+        },
+        {
+            id: 75,
+            title: "세종 청년 창업 지원",
+            description: "세종시 청년 스타트업 지원 사업",
+            eligibility: "만 19-39세 세종 거주 창업 3년 이내",
+            amount: "최대 3천만원",
+            url: "https://www.sejong.go.kr",
+            region: "세종"
+        },
+        {
+            id: 76,
+            title: "충북 청년 창업농 지원",
+            description: "충북 청년 농업 창업 지원 사업",
+            eligibility: "만 18-39세 충북 거주 예비 농업인",
+            amount: "최대 3천만원",
+            url: "https://www.chungbuk.go.kr",
+            region: "충북"
+        },
+        {
+            id: 77,
+            title: "충남 청년 창업 지원금",
+            description: "충남 청년 창업 활성화 지원",
+            eligibility: "만 19-39세 충남 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.chungnam.go.kr",
+            region: "충남"
+        },
+        {
+            id: 78,
+            title: "전북 청년 창업 지원",
+            description: "전북 청년 창업가 육성 사업",
+            eligibility: "만 19-39세 전북 거주 창업 3년 이내",
+            amount: "최대 3천만원",
+            url: "https://www.jeonbuk.go.kr",
+            region: "전북"
+        },
+        {
+            id: 79,
+            title: "전남 청년 창업농장",
+            description: "전남 청년 농업 창업 지원 프로그램",
+            eligibility: "만 18-39세 전남 거주 예비 농업인",
+            amount: "최대 3억원 (융자)",
+            url: "https://www.jeonnam.go.kr",
+            region: "전남"
+        },
+        {
+            id: 80,
+            title: "경북 청년 CEO 육성",
+            description: "경북 청년 창업가 양성 지원 사업",
+            eligibility: "만 19-39세 경북 거주 예비창업자",
+            amount: "최대 2천만원",
+            url: "https://www.gb.go.kr",
+            region: "경북"
+        },
+        {
+            id: 81,
+            title: "경남 청년 창업 지원금",
+            description: "경남 청년 스타트업 육성 지원",
+            eligibility: "만 19-39세 경남 거주 창업 3년 이내",
+            amount: "최대 3천만원",
+            url: "https://www.gyeongnam.go.kr",
+            region: "경남"
+        },
+        {
+            id: 82,
+            title: "제주 청년 창업 지원",
+            description: "제주 청년 창업 생태계 활성화 사업",
+            eligibility: "만 19-39세 제주 거주 예비창업자",
+            amount: "최대 5천만원",
+            url: "https://www.jeju.go.kr",
+            region: "제주"
+        }
+    ]
+};
+
+// Routes
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Scrap page route
+app.get('/scrap.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'scrap.html'));
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        policies_count: Object.values(policyDatabase).flat().length
+    });
+});
+
+// Main chat endpoint with RAG System
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { message, context } = req.body;
+        
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+
+        // Log the conversation
+        chatHistory.push({
+            timestamp: new Date().toISOString(),
+            user: message,
+            context: context
+        });
+
+        // Check if API key is configured
+        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your-api-key-here') {
+            console.log('⚠️  OpenAI API key not configured. Using fallback response.');
+            console.log('📝 To use RAG system, please set OPENAI_API_KEY in .env file');
+            
+            // Use existing processMessage as fallback
+            const response = await processMessage(message);
+            
+            // Add warning to response
+            response.warning = 'RAG system not active. Please configure API key.';
+            
+            res.json(response);
+        } else {
+            // Use RAG System for response
+            console.log('🤖 Using RAG System for response generation');
+            const response = await ragSystem.processQuery(message);
+            
+            // Log AI response
+            chatHistory.push({
+                timestamp: new Date().toISOString(),
+                ai: response.message,
+                method: 'RAG'
+            });
+            
+            res.json({
+                ...response,
+                timestamp: new Date().toISOString(),
+                method: 'RAG'
+            });
+        }
+    } catch (error) {
+        console.error('Chat API Error:', error);
+        
+        // Fallback to local response on error
+        try {
+            const fallbackResponse = await processMessage(req.body.message);
+            res.json({
+                ...fallbackResponse,
+                warning: 'Using fallback response due to RAG error'
+            });
+        } catch (fallbackError) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+});
+
+// Quick ask endpoint
+app.post('/api/quick-ask', (req, res) => {
+    const { question } = req.body;
+    
+    if (!question) {
+        return res.status(400).json({ error: 'Question is required' });
+    }
+
+    const quickResponse = getQuickResponse(question);
+    res.json(quickResponse);
+});
+
+// Get chat suggestions
+app.get('/api/suggestions', (req, res) => {
+    const suggestions = [
+        "청년 월세 지원 자격 조건은?",
+        "창업 지원금 신청 방법 알려줘",
+        "취업 프로그램 추천해줘",
+        "전세 대출 받을 수 있을까?",
+        "청년수당 신청하고 싶어"
+    ];
+    res.json({ suggestions });
+});
+
+// Get policies by category
+app.get('/api/policies/:category', (req, res) => {
+    const { category } = req.params;
+    const policies = policyDatabase[category] || [];
+    res.json({ category, policies });
+});
+
+// Search policies
+app.get('/api/search', (req, res) => {
+    const { q } = req.query;
+    
+    if (!q) {
+        return res.status(400).json({ error: 'Query parameter is required' });
+    }
+
+    const allPolicies = Object.values(policyDatabase).flat();
+    const results = allPolicies.filter(policy => 
+        policy.title.toLowerCase().includes(q.toLowerCase()) ||
+        policy.description.toLowerCase().includes(q.toLowerCase())
+    );
+
+    res.json({ query: q, results });
+});
+
+// Get chat history
+app.get('/api/history', (req, res) => {
+    const { limit = 10 } = req.query;
+    const recentHistory = chatHistory.slice(-limit);
+    res.json({ history: recentHistory });
+});
+
+// Test page route
+app.get('/test', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'test.html'));
+});
+
+// Helper functions
+async function processMessage(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    // Analyze message intent
+    const intent = analyzeIntent(lowerMessage);
+    
+    // Get relevant policies based on intent and region
+    const region = intent.region || null;
+    const relevantPolicies = findRelevantPolicies(lowerMessage, region);
+    
+    // Try to get enhanced information from external APIs
+    let enhancedInfo = null;
+    try {
+        console.log(`🔍 Searching for enhanced information for: "${message}" (region: ${region || 'none'})`);
+        enhancedInfo = await searchService.searchComprehensive(message, region);
+        console.log('✅ Enhanced info retrieved:', enhancedInfo ? 'Success' : 'No data');
+    } catch (error) {
+        console.error('External API search failed:', error);
+        console.log('Using local data as fallback');
+    }
+    
+    // Generate response based on intent, policies, and enhanced info
+    const response = generateEnhancedResponse(intent, relevantPolicies, message, enhancedInfo);
+    
+    return response;
+}
+
+function analyzeIntent(message) {
+    // Check for region-specific queries - ALL regions in Korea
+    const regions = ['서울', '부산', '경기', '인천', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+    
+    // City to region mapping for major cities
+    const cityToRegion = {
+        // 서울
+        '강남': '서울', '강동': '서울', '강북': '서울', '강서': '서울', '관악': '서울',
+        '광진': '서울', '구로': '서울', '금천': '서울', '노원': '서울', '도봉': '서울',
+        '동대문': '서울', '동작': '서울', '마포': '서울', '서대문': '서울', '서초': '서울',
+        '성동': '서울', '성북': '서울', '송파': '서울', '양천': '서울', '영등포': '서울',
+        '용산': '서울', '은평': '서울', '종로': '서울', '중구': '서울', '중랑': '서울',
+        
+        // 경기
+        '수원': '경기', '성남': '경기', '고양': '경기', '용인': '경기', '부천': '경기',
+        '안산': '경기', '안양': '경기', '남양주': '경기', '화성': '경기', '평택': '경기',
+        '의정부': '경기', '시흥': '경기', '파주': '경기', '광명': '경기', '김포': '경기',
+        '군포': '경기', '광주': '경기', '이천': '경기', '양주': '경기', '오산': '경기',
+        '구리': '경기', '안성': '경기', '포천': '경기', '의왕': '경기', '하남': '경기',
+        '여주': '경기', '양평': '경기', '동두천': '경기', '과천': '경기', '가평': '경기', '연천': '경기',
+        
+        // 강원
+        '춘천': '강원', '원주': '강원', '강릉': '강원', '동해': '강원', '태백': '강원',
+        '속초': '강원', '삼척': '강원', '홍천': '강원', '횡성': '강원', '영월': '강원',
+        '평창': '강원', '정선': '강원', '철원': '강원', '화천': '강원', '양구': '강원',
+        '인제': '강원', '고성': '강원', '양양': '강원',
+        
+        // 충북
+        '청주': '충북', '충주': '충북', '제천': '충북', '보은': '충북', '옥천': '충북',
+        '영동': '충북', '증평': '충북', '진천': '충북', '괴산': '충북', '음성': '충북', '단양': '충북',
+        
+        // 충남
+        '천안': '충남', '공주': '충남', '보령': '충남', '아산': '충남', '서산': '충남',
+        '논산': '충남', '계룡': '충남', '당진': '충남', '금산': '충남', '부여': '충남',
+        '서천': '충남', '청양': '충남', '홍성': '충남', '예산': '충남', '태안': '충남',
+        
+        // 전북
+        '전주': '전북', '군산': '전북', '익산': '전북', '정읍': '전북', '남원': '전북',
+        '김제': '전북', '완주': '전북', '진안': '전북', '무주': '전북', '장수': '전북',
+        '임실': '전북', '순창': '전북', '고창': '전북', '부안': '전북',
+        
+        // 전남
+        '목포': '전남', '여수': '전남', '순천': '전남', '나주': '전남', '광양': '전남',
+        '담양': '전남', '곡성': '전남', '구례': '전남', '고흥': '전남', '보성': '전남',
+        '화순': '전남', '장흥': '전남', '강진': '전남', '해남': '전남', '영암': '전남',
+        '무안': '전남', '함평': '전남', '영광': '전남', '장성': '전남', '완도': '전남',
+        '진도': '전남', '신안': '전남',
+        
+        // 경북
+        '포항': '경북', '경주': '경북', '김천': '경북', '안동': '경북', '구미': '경북',
+        '영주': '경북', '영천': '경북', '상주': '경북', '문경': '경북', '경산': '경북',
+        '군위': '경북', '의성': '경북', '청송': '경북', '영양': '경북', '영덕': '경북',
+        '청도': '경북', '고령': '경북', '성주': '경북', '칠곡': '경북', '예천': '경북',
+        '봉화': '경북', '울진': '경북', '울릉': '경북',
+        
+        // 경남
+        '창원': '경남', '진주': '경남', '통영': '경남', '사천': '경남', '김해': '경남',
+        '밀양': '경남', '거제': '경남', '양산': '경남', '의령': '경남', '함안': '경남',
+        '창녕': '경남', '고성': '경남', '남해': '경남', '하동': '경남', '산청': '경남',
+        '함양': '경남', '거창': '경남', '합천': '경남',
+        
+        // 제주
+        '제주시': '제주', '서귀포': '제주', '서귀포시': '제주'
+    };
+    
+    let region = null;
+    
+    // First check for major regions
+    for (const r of regions) {
+        if (message.includes(r)) {
+            region = r;
+            break;
+        }
+    }
+    
+    // If no major region found, check for cities and map to their regions
+    if (!region) {
+        for (const [city, cityRegion] of Object.entries(cityToRegion)) {
+            if (message.includes(city)) {
+                region = cityRegion;
+                break;
+            }
+        }
+    }
+    
+    let type = 'general';
+    
+    // Main categories from UI: 취업, 창업, 주거, 교육, 복지, 문화/예술, 참여권리, 기타
+    // Check category first
+    if (message.includes('취업') || message.includes('일자리') || message.includes('인턴') || message.includes('구직')) {
+        type = 'employment';
+    } else if (message.includes('창업') || message.includes('사업') || message.includes('스타트업')) {
+        type = 'startup';
+    } else if (message.includes('주거') || message.includes('월세') || message.includes('전세') || message.includes('집') || message.includes('주택')) {
+        type = 'housing';
+    } else if (message.includes('교육') || message.includes('학자금') || message.includes('학비') || message.includes('장학')) {
+        type = 'education';
+    } else if (message.includes('복지') || message.includes('수당') || message.includes('청년수당')) {
+        type = 'welfare';
+    } else if (message.includes('문화') || message.includes('예술') || message.includes('공연') || message.includes('전시')) {
+        type = 'culture';
+    } else if (message.includes('참여') || message.includes('권리') || message.includes('투표') || message.includes('정치')) {
+        type = 'participation';
+    }
+    
+    // Check for specific age mentions (18-39) - all youth ages
+    const ageMatch = message.match(/(\d{2})살|난\s*(\d{2})|저\s*(\d{2})|\b(\d{2})년생/);
+    if (ageMatch && type === 'general') {
+        const age = parseInt(ageMatch[1] || ageMatch[2] || ageMatch[3] || ageMatch[4]);
+        if (age >= 18 && age <= 39) {
+            type = 'youth_age_specific';
+        }
+    }
+    
+    // Check for age-range queries
+    if (type === 'general') {
+        if (message.includes('20대') || message.includes('이십대')) {
+            type = 'youth_age_specific';
+        } else if (message.includes('30대') || message.includes('삼십대')) {
+            type = 'youth_age_specific';
+        } else if (message.includes('청년')) {
+            type = 'youth_general';
+        }
+    }
+    
+    // Check for personalized queries
+    if (type === 'general') {
+        if ((message.includes('나') || message.includes('저') || message.includes('내가')) && 
+            (message.includes('맞는') || message.includes('필요') || message.includes('받을') || 
+             message.includes('할 수 있') || message.includes('가능'))) {
+            type = 'personal_recommendation';
+        } else if (message.includes('추천') || message.includes('어떤') || message.includes('뭐가 있') || 
+                   message.includes('알려주') || message.includes('소개')) {
+            type = 'recommendation';
+        }
+    }
+    
+    // Specific policy types (if not already categorized)
+    if (type === 'general') {
+        if (message.includes('전세자금')) {
+            type = 'jeonse';
+    } else if (message.includes('청년수당') || message.includes('수당')) {
+        type = 'allowance';
+    } else if (message.includes('신청') && (message.includes('방법') || message.includes('어떻게'))) {
+        type = 'application';
+    } else if (message.includes('취업') || message.includes('일자리') || message.includes('인턴')) {
+        type = 'employment';
+    } else if (message.includes('창업') || message.includes('사업') || message.includes('스타트업')) {
+        type = 'startup';
+    } else if (message.includes('인기') || message.includes('추천') || message.includes('best')) {
+        type = 'popular';
+    } else if (message.includes('안녕') || message.includes('반가')) {
+        type = 'greeting';
+    } else if (message.includes('감사') || message.includes('고마')) {
+        type = 'thanks';
+    } else if (region && !message.includes('서울')) {
+        // If region is mentioned but no specific policy type, show regional policies
+        type = 'regional';
+    }
+    
+    return { type, region };
+}
+
+function findRelevantPolicies(message, region = null) {
+    const allPolicies = Object.values(policyDatabase).flat();
+    const relevant = [];
+    
+    console.log(`🔍 Finding policies for region: ${region}, message: "${message}"`);
+    console.log(`📊 Total policies in database: ${allPolicies.length}`);
+    
+    // Simple keyword matching (can be improved with NLP)
+    const keywords = message.split(' ').filter(word => word.length > 1);
+    
+    allPolicies.forEach(policy => {
+        // If region is specified, prioritize regional policies
+        if (region) {
+            // Include policies that match the region OR are nationwide
+            if (policy.region === region || policy.region === '전국') {
+                const policyText = `${policy.title} ${policy.description}`.toLowerCase();
+                const matches = keywords.filter(keyword => 
+                    policyText.includes(keyword.toLowerCase())
+                ).length;
+                
+                // Add policy if it matches keywords OR if it's from the requested region
+                relevant.push({ ...policy, relevance: matches + (policy.region === region ? 10 : 0) });
+            }
+        } else {
+            // No specific region, use keyword matching
+            const policyText = `${policy.title} ${policy.description}`.toLowerCase();
+            const matches = keywords.filter(keyword => 
+                policyText.includes(keyword.toLowerCase())
+            ).length;
+            
+            if (matches > 0) {
+                relevant.push({ ...policy, relevance: matches });
+            }
+        }
+    });
+    
+    console.log(`✅ Found ${relevant.length} relevant policies`);
+    
+    // Sort by relevance
+    relevant.sort((a, b) => b.relevance - a.relevance);
+    
+    return relevant.slice(0, 10); // Return top 10 most relevant
+}
+
+function generateEnhancedResponse(intent, policies, originalMessage, enhancedInfo) {
+    // If we have enhanced info from APIs, use it to enrich the response
+    if (enhancedInfo) {
+        return generateResponseWithEnhancedInfo(intent, policies, originalMessage, enhancedInfo);
+    }
+    // Otherwise, fall back to regular response
+    return generateResponse(intent, policies, originalMessage);
+}
+
+function generateResponseWithEnhancedInfo(intent, policies, originalMessage, enhancedInfo) {
+    let message = '';
+    let references = [];
+    let followUpQuestions = [];
+    
+    // Start with basic response
+    const basicResponse = generateResponse(intent, policies, originalMessage);
+    message = basicResponse.message;
+    references = basicResponse.references || [];
+    followUpQuestions = basicResponse.followUpQuestions || [];
+    
+    // Add real-time information from Tavily if available (Korean only)
+    if (enhancedInfo.realTimeInfo?.answer) {
+        // Check if the answer is in Korean (contains Korean characters)
+        const hasKorean = /[가-힣]/.test(enhancedInfo.realTimeInfo.answer);
+        const hasTooMuchEnglish = /[a-zA-Z]{20,}/.test(enhancedInfo.realTimeInfo.answer);
+        
+        // Only include if it's Korean or mixed (not pure English)
+        if (hasKorean && !hasTooMuchEnglish) {
+            message += '\n\n### 🔍 최신 정보\n';
+            message += enhancedInfo.realTimeInfo.answer + '\n';
+        }
+        
+        // Add Tavily search results as references
+        if (enhancedInfo.realTimeInfo.results) {
+            enhancedInfo.realTimeInfo.results.forEach(result => {
+                references.push({
+                    title: result.title,
+                    url: result.url,
+                    snippet: result.content?.substring(0, 200) + '...'
+                });
+            });
+        }
+    }
+    
+    // Add AI analysis from Perplexity if available
+    if (enhancedInfo.aiAnalysis?.answer) {
+        message += '\n\n### 💡 AI 분석\n';
+        message += enhancedInfo.aiAnalysis.answer + '\n';
+    }
+    
+    // Add nearby youth centers if location info is available
+    if (enhancedInfo.nearbyLocations && enhancedInfo.nearbyLocations.length > 0) {
+        message += '\n\n### 📍 가까운 청년센터\n';
+        enhancedInfo.nearbyLocations.slice(0, 3).forEach(location => {
+            message += `• **${location.title}**\n`;
+            message += `  주소: ${location.address}\n`;
+            if (location.telephone) {
+                message += `  📞 ${location.telephone}\n`;
+            }
+            message += '\n';
+        });
+    }
+    
+    return {
+        message: message,
+        references: references,
+        followUpQuestions: followUpQuestions,
+        hasEnhancedInfo: true
+    };
+}
+
+function generateResponse(intent, policies, originalMessage) {
+    let message = '';
+    let references = [];
+    let followUpQuestions = [];
+    
+    // Handle regional queries or when region is detected
+    if ((intent.type === 'regional' || intent.region) && intent.region) {
+        const regionName = intent.region;
+        const regionalPolicies = policies.filter(p => p.region === regionName || p.region === '전국');
+        
+        console.log(`🏛️ Generating response for ${regionName} with ${regionalPolicies.length} policies`);
+        
+        if (regionalPolicies.length > 0) {
+            message = `**${regionName} 청년 지원 정책**\n\n`;
+            message += `${regionName} 지역 청년들을 위한 맞춤형 지원 정책을 안내해드립니다.\n\n`;
+            
+            // Group policies by category
+            const housingPolicies = regionalPolicies.filter(p => p.title.includes('월세') || p.title.includes('주거') || p.title.includes('전월세'));
+            const employmentPolicies = regionalPolicies.filter(p => p.title.includes('구직') || p.title.includes('취업') || p.title.includes('일자리') || p.title.includes('수당'));
+            const startupPolicies = regionalPolicies.filter(p => p.title.includes('창업') || p.title.includes('CEO'));
+            
+            if (housingPolicies.length > 0) {
+                message += '🏠 **주거 지원**\n\n';
+                housingPolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n`;
+                    message += `  - 자격조건: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
+                });
+            }
+            
+            if (employmentPolicies.length > 0) {
+                message += '💼 **취업/구직 지원**\n\n';
+                employmentPolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n`;
+                    message += `  - 자격조건: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
+                });
+            }
+            
+            if (startupPolicies.length > 0) {
+                message += '🚀 **창업 지원**\n\n';
+                startupPolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n`;
+                    message += `  - 자격조건: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
+                });
+            }
+            
+            message += `\n💡 **더 자세한 정보는 ${regionName} 청년포털이나 해당 기관 홈페이지를 방문해주세요.**`;
+            
+            followUpQuestions = [
+                `${regionName} 월세 지원 신청 방법은?`,
+                `${regionName} 청년수당 자격 조건은?`,
+                `${regionName} 창업 지원금 신청 기간은?`
+            ];
+        } else {
+            message = `죄송합니다. 현재 제가 알고 있는 서울시의 청년 정책 정보만 있습니다. ${regionName}시의 청년 정책에 대한 정보가 없어서 도움을 드리지 못하는 점 양해 부탁드립니다.\n\n`;
+            message += `만약 ${regionName}시의 청년 정책에 대해 궁금한 사항이 있으시다면, ${regionName}시청이나 ${regionName}시 관련 기관에 문의하시는 것을 추천드립니다. 🙇‍♂️`;
+            
+            // Still show nationwide policies
+            const nationwidePolicies = policies.filter(p => p.region === '전국');
+            if (nationwidePolicies.length > 0) {
+                message += '\n\n**전국 단위 청년 정책**\n\n';
+                nationwidePolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
+                });
+            }
+            
+            followUpQuestions = [
+                '전국 청년 주거 지원 정책 알려주세요',
+                '청년 취업 지원 프로그램 추천해주세요',
+                '청년 창업 지원금 정보가 궁금해요'
+            ];
+        }
+        
+        return { 
+            message, 
+            references, 
+            followUpQuestions, 
+            intent: intent.type,
+            hasPoster: false,
+            timestamp: new Date().toISOString()
+        };
+    }
+    
+    switch (intent.type) {
+        case 'youth_age_specific':
+        case 'youth_general':
+        case 'personal_recommendation':
+        case 'recommendation':
+            // Extract age if mentioned
+            const ageMatch = message.match(/(\d{2})살/);
+            const specificAge = ageMatch ? parseInt(ageMatch[1]) : null;
+            
+            if (specificAge) {
+                message = `### 🎯 ${specificAge}살 청년에게 딱 맞는 정책\n\n`;
+                message += `${specificAge}살이시군요! 당신에게 꼭 필요한 정책들을 소개해드릴게요 😊\n\n`;
+                
+                // Age-specific tips
+                if (specificAge >= 19 && specificAge <= 22) {
+                    message += '📖 **현재 상황**: 대학생 또는 취업 준비 초기 단계\n';
+                } else if (specificAge >= 23 && specificAge <= 26) {
+                    message += '💼 **현재 상황**: 취업 준비 또는 사회초년생\n';
+                } else if (specificAge >= 27 && specificAge <= 29) {
+                    message += '🌱 **현재 상황**: 경력 개발 및 자산 형성 시기\n';
+                }
+                message += '\n';
+            } else {
+                message = '### 🎯 20대 청년에게 꼭 필요한 정책\n\n';
+                message += '20대 청년분들에게 가장 유용한 정책들을 소개해드립니다! 🚀\n\n';
+            }
+            
+            // Filter policies based on specific age if provided
+            const filterByAge = (policy, age = 25) => {
+                // Check if the age falls within the policy's eligibility range
+                const eligibility = policy.eligibility.toLowerCase();
+                
+                // Common patterns: "만 19-34세", "18-39세", etc.
+                const rangeMatch = eligibility.match(/만?\s*(\d+)[~\-](\d+)세/);
+                if (rangeMatch) {
+                    const minAge = parseInt(rangeMatch[1]);
+                    const maxAge = parseInt(rangeMatch[2]);
+                    return age >= minAge && age <= maxAge;
+                }
+                
+                // If no specific range, check for general youth policies
+                return eligibility.includes('청년') || 
+                       eligibility.includes('19') || 
+                       eligibility.includes('34') ||
+                       eligibility.includes('39');
+            };
+            
+            const targetAge = specificAge || 25;
+            
+            // Housing policies for the specific age
+            const housingFor20s = policies.filter(p => 
+                filterByAge(p, targetAge) && 
+                (p.title.includes('월세') || p.title.includes('주거'))
+            ).slice(0, 3);
+            
+            if (housingFor20s.length > 0) {
+                message += '🏠 **주거 지원 (독립을 준비하는 청년)**\n\n';
+                housingFor20s.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원금: **${policy.amount}**\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
+                });
+            }
+            
+            // Employment policies for the specific age
+            const employmentFor20s = policies.filter(p => 
+                filterByAge(p, targetAge) && 
+                (p.title.includes('취업') || p.title.includes('구직') || p.title.includes('수당'))
+            ).slice(0, 3);
+            
+            if (employmentFor20s.length > 0) {
+                message += '💼 **취업/구직 지원**\n\n';
+                employmentFor20s.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원금: **${policy.amount}**\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
+                });
+            }
+            
+            // Education support for 20s
+            const educationFor20s = policies.filter(p => 
+                p.title.includes('교육') || p.title.includes('학자금') || p.title.includes('장학')
+            ).slice(0, 1);
+            
+            if (educationFor20s.length > 0) {
+                message += '🎓 **교육 지원 (학업에 집중하는 20대)**\n\n';
+                educationFor20s.forEach(policy => {
+                    message += `🔹 **${policy.title}**\n`;
+                    message += `  • ${policy.description}\n`;
+                    message += `  • 지원금: ${policy.amount}\n\n`;
+                });
+            }
+            
+            // Add personalized tips based on age
+            if (specificAge === 25) {
+                message += '\n🎆 **25살 특별 팁!**\n';
+                message += '• 딱 중간 나이! 취업과 주거 모두 신경쓸 때\n';
+                message += '• 청년수당, 구직활동 지원금 받을 수 있는 황금기!\n';
+                message += '• 월세 지원부터 취업 지원까지 폭넓게 활용 가능\n\n';
+            } else {
+                message += '\n💡 **연령별 꼭 필요한 지원**\n';
+                message += '• 19-22살: 학자금 대출, 교육 훈련 지원\n';
+                message += '• 23-26살: 취업 지원, 구직활동 지원금\n';
+                message += '• 27-29살: 주거 지원, 창업 지원금\n\n';
+            }
+            
+            message += '🔍 **더 많은 정책 찾기**\n';
+            message += '• 온라인 청년센터: www.youthcenter.go.kr\n';
+            message += '• 우리 지역 청년센터 방문하기\n';
+            message += '• 1357 청년전화로 상담받기';
+            
+            followUpQuestions = [
+                '대학생을 위한 지원 정책은?',
+                '첨 취업하는 청년 지원은?',
+                '월세 지원 신청 방법은?'
+            ];
+            
+            // Add references
+            policies.slice(0, 5).forEach(policy => {
+                references.push({
+                    title: policy.title,
+                    url: policy.url || '#',
+                    snippet: `${policy.description} - ${policy.amount}`,
+                    phone: ''
+                });
+            });
+            break;
+            
+        case 'education':
+            message = '🎓 **청년 교육 지원 정책**\n\n';
+            message += '학업과 자기계발을 위한 다양한 지원이 있습니다!\n\n';
+            
+            const educationPolicies = policies.filter(p => 
+                p.title.includes('교육') || p.title.includes('학자금') || 
+                p.title.includes('학비') || p.title.includes('장학') ||
+                p.description.includes('교육') || p.description.includes('훈련')
+            ).slice(0, 5);
+            
+            if (educationPolicies.length > 0) {
+                educationPolicies.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원: ${policy.amount}\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
+                });
+            } else {
+                message += '• 국가장학금 지원\n';
+                message += '• 학자금 대출\n';
+                message += '• 직업훈련 프로그램\n';
+                message += '• 자격증 취득 지원\n\n';
+            }
+            
+            followUpQuestions = [
+                '학자금 대출 조건은?',
+                '국가장학금 신청 방법은?',
+                '직업훈련 프로그램 일정은?'
+            ];
+            break;
+            
+        case 'welfare':
+            message = '🤝 **청년 복지 지원**\n\n';
+            message += '청년들의 생활 안정을 위한 복지 혜택입니다.\n\n';
+            
+            const welfarePolicies = policies.filter(p => 
+                p.title.includes('수당') || p.title.includes('복지') || 
+                p.title.includes('지원금') || p.description.includes('생활')
+            ).slice(0, 5);
+            
+            if (welfarePolicies.length > 0) {
+                welfarePolicies.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원: ${policy.amount}\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
+                });
+            }
+            
+            followUpQuestions = [
+                '청년수당 자격 조건은?',
+                '복지 혜택 신청 방법은?',
+                '소득 기준이 어떻게 되나요?'
+            ];
+            break;
+            
+        case 'culture':
+            message = '🎨 **청년 문화/예술 지원**\n\n';
+            message += '문화와 예술 활동을 위한 지원 프로그램입니다.\n\n';
+            message += '• 청년 문화패스\n';
+            message += '• 공연/전시 할인\n';
+            message += '• 예술 창작 지원\n';
+            message += '• 문화 활동 보조금\n\n';
+            
+            followUpQuestions = [
+                '청년 문화패스 신청 방법은?',
+                '문화 활동 지원금은?',
+                '예술 창작 공간 지원은?'
+            ];
+            break;
+            
+        case 'participation':
+            message = '🗳️ **청년 참여권리**\n\n';
+            message += '청년들의 사회 참여를 위한 정책입니다.\n\n';
+            message += '• 청년 정책 참여단\n';
+            message += '• 청년 위원회 활동\n';
+            message += '• 정책 제안 플랫폼\n';
+            message += '• 청년 공청회 참여\n\n';
+            
+            followUpQuestions = [
+                '청년 정책 참여단 신청은?',
+                '청년 위원회 활동 방법은?',
+                '정책 제안은 어떻게 하나요?'
+            ];
+            break;
+            
+        case 'age_30s':
+            message = '### 🎯 30대 청년에게 추천하는 정책\n\n';
+            message += '30대 청년분들의 생활 안정을 위한 정책들을 소개합니다! 🌱\n\n';
+            
+            // Housing and family support for 30s
+            const housingFor30s = policies.filter(p => 
+                p.eligibility.includes('39') && 
+                (p.title.includes('주택') || p.title.includes('전세'))
+            ).slice(0, 2);
+            
+            if (housingFor30s.length > 0) {
+                message += '🏡 **주택 구입/전세 지원**\n\n';
+                housingFor30s.forEach(policy => {
+                    message += `🔹 **${policy.title}**\n`;
+                    message += `  • ${policy.description}\n`;
+                    message += `  • 지원금: ${policy.amount}\n\n`;
+                });
+            }
+            
+            message += '💡 **30대 맞춤 TIP**\n';
+            message += '• 주택 구입 준비: 전세자금 대출, 디딬런드 대출\n';
+            message += '• 경력 개발: 직무 전환 교육, 재취업 지원\n';
+            message += '• 창업 지원: 사업자금 대출, 창업 컨설팅\n';
+            
+            followUpQuestions = [
+                '30대 주택 구입 지원은?',
+                '경력 전환 프로그램은?',
+                '30대 창업 지원금은?'
+            ];
+            break;
+            
+        case 'greeting':
+            message = '안녕하세요! 유씨 AI 챗봇입니다. 😊\n\n청년 정책에 대한 궁금한 점을 물어보세요. 주거, 취업, 창업, 교육 등 다양한 분야의 정책 정보를 제공해드립니다.';
+            followUpQuestions = [
+                '청년 월세 지원에 대해 알려주세요',
+                '취업 프로그램을 추천해주세요',
+                '창업 지원금 정보가 궁금해요'
+            ];
+            break;
+            
+        case 'thanks':
+            message = '도움이 되셨다니 기쁩니다! 😊 더 궁금한 점이 있으시면 언제든지 물어보세요.';
+            break;
+            
+        case 'housing':
+            // Only show housing-related policies
+            const housingPolicies = policyDatabase.housing || [];
+            
+            message = '### 🏠 청년 주거 지원 정책\n\n';
+            message += '청년 주거 안정을 위한 다양한 지원 정책을 안내해드립니다.\n\n';
+            
+            housingPolicies.forEach((policy) => {
+                message += `📍 **${policy.title}**\n`;
+                message += `${policy.description}\n\n`;
+                message += `• **지원금액**: ${policy.amount}\n`;
+                message += `• **자격조건**: ${policy.eligibility}\n`;
+                message += `• **신청방법**: 온라인 또는 방문 신청\n`;
+                if (policy.url) {
+                    message += `• **문의처**: ${policy.url}\n`;
+                }
+                message += '\n---\n\n';
+                
+                references.push({
+                    title: policy.title,
+                    url: policy.url,
+                    snippet: policy.description + ' [' + policy.amount + ']'
+                });
+            });
+            
+            // Add related housing support info
+            message += '💡 **추가 정보**\n';
+            message += '• 서울시 청년주거포털: youth.seoul.go.kr/housing\n';
+            message += '• 청년전세임대: 전화 1600-1004\n';
+            message += '• LH 청년주택: 전화 1600-1004\n';
+            
+            followUpQuestions = [
+                '월세 지원 신청 방법 자세히 알려주세요',
+                '전세자금 대출 조건이 궁금해요',
+                '청년 공공임대주택 신청하려면?'
+            ];
+            break;
+            
+        case 'employment':
+            if (policies.length > 0) {
+                message = '취업 지원 프로그램을 소개해드립니다:\n\n';
+                policies.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   • ${policy.description}\n`;
+                    message += `   • 지원내용: ${policy.amount}\n`;
+                    message += `   • 대상: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url,
+                        snippet: policy.description
+                    });
+                });
+                followUpQuestions = [
+                    '인턴십 신청 방법은?',
+                    'IT 교육 프로그램 일정은?',
+                    '취업 상담 예약하려면?'
+                ];
+            }
+            break;
+            
+        case 'popular':
+            message = '### 🔥 지금 가장 핫한 청년 정책\n\n';
+            message += '2024년 청년들이 가장 많이 찾는 인기 정책을 소개합니다!\n\n';
+            
+            message += '**1. 🏠 서울시 청년 월세 지원** ⭐⭐⭐⭐⭐\n';
+            message += '월 최대 20만원을 12개월간 지원하는 대표 주거 정책입니다.\n';
+            message += '• **지원대상**: 만 19-39세 무주택 청년\n';
+            message += '• **소득기준**: 중위소득 150% 이하\n';
+            message += '• **임차조건**: 보증금 5천만원, 월세 60만원 이하\n';
+            message += '• 📞 문의: 02-2133-6587\n\n';
+            
+            message += '2. **청년 전세자금 대출** ⭐⭐⭐⭐⭐\n';
+            message += '   • 최대 2억원 저금리 대출\n';
+            message += '   • 연 1.2~2.1% 초저금리\n';
+            message += '   • 주거 안정의 필수 정책\n\n';
+            
+            message += '3. **청년 인턴십 프로그램** ⭐⭐⭐⭐\n';
+            message += '   • 월 180만원 이상 급여\n';
+            message += '   • 정규직 전환 기회\n';
+            message += '   • 취업 성공률 80% 이상\n\n';
+            
+            message += '4. **🚀 청년 창업 지원금** ⭐⭐⭐⭐\n';
+            message += '예비창업자와 초기창업자를 위한 든든한 지원!\n';
+            message += '• **지원금액**: 최대 1억원\n';
+            message += '• **지원내용**: 사업화 자금, 사무실, 멘토링\n';
+            message += '• **대상**: 만 39세 이하, 창업 3년 이내\n';
+            message += '• 📞 문의: 1357 (창업진흥원)\n\n';
+            
+            message += '5. **청년수당** ⭐⭐⭐\n';
+            message += '   • 월 50만원 현금 지원\n';
+            message += '   • 최대 6개월간 지급\n';
+            message += '   • 구직활동 집중 지원\n\n';
+            
+            message += '💡 **Tip**: 각 정책은 지역별로 조건이 다를 수 있으니 자세한 내용을 확인해보세요!';
+            
+            references = [
+                { title: '서울시 청년포털', url: 'https://youth.seoul.go.kr', snippet: '서울시 청년정책 종합 안내' },
+                { title: '온통청년', url: 'https://www.youthcenter.go.kr', snippet: '전국 청년정책 통합 검색' }
+            ];
+            
+            followUpQuestions = [
+                '월세 지원 신청 방법 알려줘',
+                '전세자금 대출 조건은?',
+                '청년수당 받을 수 있을까?'
+            ];
+            break;
+            
+        case 'jeonse':
+            message = '📍 **청년 전세자금 대출 상세 조건**\n\n';
+            message += '**1. 기본 자격 요건**\n';
+            message += '• 연령: 만 19세~34세 (단독세대주 포함)\n';
+            message += '• 소득: 연 소득 5천만원 이하\n';
+            message += '• 자산: 순자산 3.61억원 이하\n';
+            message += '• 주택: 무주택자\n\n';
+            
+            message += '**2. 대출 조건**\n';
+            message += '• 대출한도: 최대 2억원 (보증금의 80% 이내)\n';
+            message += '• 금리: 연 1.2~2.1% (소득수준별 차등)\n';
+            message += '• 대출기간: 2년 (4회 연장 가능, 최장 10년)\n\n';
+            
+            message += '**3. 대상 주택**\n';
+            message += '• 임차보증금 3억원 이하\n';
+            message += '• 전용면적 85㎡ 이하\n';
+            message += '• 수도권: 보증금 3억원 이하\n';
+            message += '• 지방: 보증금 2억원 이하\n\n';
+            
+            message += '**4. 신청 방법**\n';
+            message += '• 온라인: 기금e든든 홈페이지\n';
+            message += '• 오프라인: 우리은행, 국민은행, 신한은행, 농협, 하나은행\n\n';
+            
+            message += '💡 **Tip**: 중소기업 재직자는 더 낮은 금리 적용!';
+            
+            references = [
+                { title: '주택도시기금', url: 'https://nhuf.molit.go.kr', snippet: '청년 전세자금대출 공식 안내' },
+                { title: '기금e든든', url: 'https://enhuf.molit.go.kr', snippet: '온라인 신청 사이트' }
+            ];
+            
+            followUpQuestions = [
+                '필요 서류는 뭔가요?',
+                '중소기업 재직자 혜택은?',
+                '대출 승인까지 얼마나 걸려요?'
+            ];
+            break;
+            
+        case 'allowance':
+            message = '💰 **청년수당 상세 정보**\n\n';
+            message += '**서울시 청년수당**\n';
+            message += '• 지원대상: 만 19~34세 미취업 청년\n';
+            message += '• 지원금액: 월 50만원 × 최대 6개월\n';
+            message += '• 소득조건: 중위소득 150% 이하\n';
+            message += '• 활동조건: 주 20시간 이상 구직활동\n\n';
+            
+            message += '**신청 절차**\n';
+            message += '1. 서울시 청년포털 회원가입\n';
+            message += '2. 온라인 신청서 작성\n';
+            message += '3. 자기활동계획서 제출\n';
+            message += '4. 서류 심사 (2주)\n';
+            message += '5. 면접 심사\n';
+            message += '6. 최종 선발\n\n';
+            
+            message += '**의무사항**\n';
+            message += '• 매월 활동보고서 제출\n';
+            message += '• 청년활동 프로그램 참여\n';
+            message += '• 취업 시 즉시 신고\n\n';
+            
+            message += '⚠️ **주의**: 타 정부지원금과 중복 수급 불가!';
+            
+            references = [
+                { title: '서울시 청년수당', url: 'https://youth.seoul.go.kr/site/main/content/youth_allowance', snippet: '청년수당 공식 안내' }
+            ];
+            
+            followUpQuestions = [
+                '청년수당 신청 기간은?',
+                '활동보고서 어떻게 쓰나요?',
+                '다른 지원금과 중복 가능한가요?'
+            ];
+            break;
+            
+        case 'application':
+            const originalLower = originalMessage.toLowerCase();
+            if (originalLower.includes('월세')) {
+                message = '📝 **청년 월세 지원 신청 방법**\n\n';
+                message += '**Step 1: 자격 확인**\n';
+                message += '• 만 19~39세\n';
+                message += '• 무주택자\n';
+                message += '• 중위소득 150% 이하\n';
+                message += '• 임차보증금 5천만원 이하, 월세 60만원 이하\n\n';
+                
+                message += '**Step 2: 서류 준비**\n';
+                message += '• 신분증\n';
+                message += '• 임대차계약서\n';
+                message += '• 소득증빙서류\n';
+                message += '• 주민등록등본\n';
+                message += '• 무주택 확인서\n\n';
+                
+                message += '**Step 3: 온라인 신청**\n';
+                message += '1. 서울시 청년포털 접속 (youth.seoul.go.kr)\n';
+                message += '2. 회원가입 및 로그인\n';
+                message += '3. "청년 월세 지원" 메뉴 클릭\n';
+                message += '4. 신청서 작성\n';
+                message += '5. 서류 업로드\n';
+                message += '6. 제출 완료\n\n';
+                
+                message += '**Step 4: 결과 확인**\n';
+                message += '• 심사기간: 약 2~3주\n';
+                message += '• 결과통보: 문자 및 이메일\n';
+                message += '• 지급시작: 선정 다음달부터\n\n';
+                
+                message += '📅 **신청기간**: 매년 상/하반기 (공고 확인 필수!)';
+                
+                references = [
+                    { title: '서울시 청년포털', url: 'https://youth.seoul.go.kr', snippet: '월세 지원 신청 페이지' }
+                ];
+                
+                followUpQuestions = [
+                    '소득증빙서류 뭐가 필요해?',
+                    '신청 후 언제부터 받을 수 있어?',
+                    '이사하면 어떻게 해?'
+                ];
+            } else {
+                message = '신청 방법에 대해 더 구체적으로 알려주시면 자세히 안내해드리겠습니다.\n\n';
+                message += '예시:\n';
+                message += '• "월세 지원 신청 방법 알려줘"\n';
+                message += '• "전세자금 대출 신청하려면?"\n';
+                message += '• "청년수당 신청 절차는?"';
+                
+                followUpQuestions = [
+                    '월세 지원 신청 방법',
+                    '전세자금 대출 신청',
+                    '청년수당 신청하기'
+                ];
+            }
+            break;
+            
+        case 'startup':
+            if (policies.length > 0) {
+                message = '창업 지원 프로그램을 안내해드립니다:\n\n';
+                policies.forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   • ${policy.description}\n`;
+                    message += `   • 지원금액: ${policy.amount}\n`;
+                    message += `   • 자격요건: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url,
+                        snippet: policy.description
+                    });
+                });
+                followUpQuestions = [
+                    '창업 지원금 신청 조건은?',
+                    '창업 교육 일정은?',
+                    '사무실 입주 신청 방법은?'
+                ];
+            }
+            break;
+            
+        default:
+            // Check if user is asking about their age/personal situation
+            const hasPersonalContext = originalMessage.includes('나') || originalMessage.includes('저') || 
+                                      originalMessage.includes('내가') || /\d{2}살/.test(originalMessage);
+            
+            if (policies.length > 0) {
+                if (hasPersonalContext) {
+                    message = '🎈 **당신에게 맞는 정책을 찾았어요!**\n\n';
+                } else {
+                    message = '🔍 **관련 정책을 찾아드렸습니다**\n\n';
+                }
+                
+                // Show top 5 most relevant policies
+                policies.slice(0, 5).forEach((policy, index) => {
+                    message += `${index + 1}. **${policy.title}**\n`;
+                    message += `   📍 ${policy.description}\n`;
+                    message += `   💰 지원: ${policy.amount}\n`;
+                    message += `   ✅ 자격: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`
+                    });
+                });
+                
+                message += '\n💡 **더 많은 정책이 궁금하신가요?**\n';
+                message += '위 정책들 중 관심 있는 것을 클릭하거나 추가 질문해주세요!';
+                
+                followUpQuestions = [
+                    '이 중에서 신청 방법 알려주세요',
+                    '필요 서류가 뭐가 있나요?',
+                    '신청 기간은 언제인가요?'
+                ];
+            } else {
+                // More friendly fallback message
+                if (hasPersonalContext) {
+                    message = '🤔 **지금 바로 답변드릴 수 있는 정보가 없네요**\n\n';
+                    message += '하지만 걸정마세요! 다음과 같이 질문해보세요:\n\n';
+                    message += '🏠 **주거 관련**: "월세 지원 받을 수 있나요?"\n';
+                    message += '💼 **취업 관련**: "취업 준비 지원금 있나요?"\n';
+                    message += '🚀 **창업 관련**: "창업 지원금 어떻게 받나요?"\n';
+                    message += '🎓 **교육 관련**: "학자금 대출 조건 알려주세요"\n\n';
+                    message += '💬 또는 지역명을 포함해서 질문해주세요!\n';
+                    message += '예) "서울 청년 월세 지원", "강원도 취업 지원"';
+                } else {
+                    message = '죄송합니다. "' + originalMessage + '"에 대한 정확한 정보를 찾지 못했습니다.\n\n';
+                    message += '다음과 같은 주제로 질문해보세요:\n';
+                    message += '• 주거 지원 (월세, 전세)\n';
+                    message += '• 취업 지원 (인턴십, 교육)\n';
+                    message += '• 창업 지원 (자금, 공간)\n';
+                    message += '• 교육 지원 (학자금, 자격증)';
+                }
+                
+                followUpQuestions = [
+                    '청년 정책 전체 보기',
+                    '나에게 맞는 정책 찾기',
+                    '인기 있는 정책 추천'
+                ];
+            }
+            break;
+    }
+    
+    // Check if response contains policy information (for poster display)
+    const hasPoster = ['housing', 'employment', 'startup', 'popular', 'jeonse', 'allowance', 'application'].includes(intent) && 
+                      (policies.length > 0 || intent === 'popular');
+    
+    return {
+        message,
+        references,
+        followUpQuestions,
+        intent,
+        hasPoster,
+        timestamp: new Date().toISOString()
+    };
+}
+
+function getQuickResponse(question) {
+    const lowerQuestion = question.toLowerCase();
+    
+    // Simple pattern matching for quick responses
+    if (lowerQuestion.includes('자격') || lowerQuestion.includes('조건')) {
+        return {
+            answer: '대부분의 청년 정책은 만 19-39세 청년을 대상으로 합니다. 정책별로 소득, 거주지, 학력 등 추가 조건이 있을 수 있습니다.',
+            sources: ['청년정책 통합 플랫폼']
+        };
+    } else if (lowerQuestion.includes('신청') || lowerQuestion.includes('방법')) {
+        return {
+            answer: '정책 신청은 주로 온라인으로 진행됩니다. 각 정책 홈페이지에서 회원가입 후 신청서를 작성하고 필요 서류를 제출하면 됩니다.',
+            sources: ['정책 신청 가이드']
+        };
+    } else {
+        return {
+            answer: '자세한 답변을 위해 채팅 기능을 이용해주세요.',
+            sources: []
+        };
+    }
+}
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+});
+
+// Start server - Fixed for PM2 and sandbox environments
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 YOUTHY AI Server is running on http://localhost:${PORT}`);
+    console.log(`📱 Test page available at http://localhost:${PORT}/test`);
+    console.log(`🔍 API Health: http://localhost:${PORT}/api/health`);
+});
+
+module.exports = app;
+}

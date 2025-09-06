@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채팅 스크랩 - YOUTHY</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/scrap.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="scrap-page-container">
+        <!-- Header -->
+        <header class="scrap-header">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='/'">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <h1 class="page-title">채팅 스크랩</h1>
+            </div>
+            <div class="header-right">
+                <button class="clear-all-btn" id="clearAllBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 5L15 15M5 15L15 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    전체 삭제
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="scrap-main">
+            <div class="scrap-container" id="scrapContainer">
+                <!-- Scrapped messages will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/scrap.js"></script>
+</body>
+</html>
