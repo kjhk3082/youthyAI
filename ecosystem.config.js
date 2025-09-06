@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'youthy-ai-chatbot',
-    script: './api-enhanced-app.js',
+    script: './realtime-youth-api.js',
     exec_mode: 'fork',
     instances: 1,
     autorestart: true,
