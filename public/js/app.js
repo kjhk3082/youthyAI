@@ -475,8 +475,10 @@ class YouthyChat {
             /(\d{1,3}(?:,\d{3})*(?:만)?\s*원)/g,
             // Percentages
             /(\d+(?:\.\d+)?%)/g,
-            // Age ranges
-            /(만?\s*\d+세(?:\s*~\s*\d+세)?)/g,
+            // Age ranges - improved pattern for various formats
+            /(만\s*\d+\s*[-~]\s*\d+세)/g,  // "만 19-34세" or "만 19~34세"
+            /(\d+\s*[-~]\s*\d+세)/g,         // "19-34세" or "19~34세"
+            /(만\s*\d+세)/g,                  // "만 19세"
             // Important keywords (reduced to avoid over-highlighting)
             /(최대|최소|지원금|보조금|무료)/g
         ];
