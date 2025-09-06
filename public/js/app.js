@@ -418,7 +418,7 @@ class YouthyChat {
             // Apply formatting to content
             processedContent = processedContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             processedContent = processedContent.replace(/•\s*(.+?)(?=\n|•|$)/g, (m, p1) => {
-                return `<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>${p1}</span></div>`;
+                return `<div class="policy-detail-item">• ${p1}</div>`;
             });
             processedContent = processedContent.replace(/\n/g, '<br>');
             
@@ -442,10 +442,10 @@ class YouthyChat {
         
         // Bullet points with better spacing (for remaining unprocessed bullets)
         text = text.replace(/•\s*(.+?)(?=\n|•|$)/g, (m, p1) => {
-            return `<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>${p1}</span></div>`;
+            return `<div class="policy-detail-item">• ${p1}</div>`;
         });
         text = text.replace(/-\s*(.+?)(?=\n|-|$)/g, (m, p1) => {
-            return `<div class="policy-detail-item"><span class="policy-detail-icon">✓</span><span>${p1}</span></div>`;
+            return `<div class="policy-detail-item">- ${p1}</div>`;
         });
         
         // Apply blue highlights AFTER structure formatting
@@ -469,41 +469,18 @@ class YouthyChat {
             return placeholder;
         });
         
-        // Highlight important keywords and amounts
+        // REDUCED highlighting for better readability - only highlight KEY information
         const highlightPatterns = [
-            // Money amounts - improved to catch all formats
-            /(\d{1,3}(?:,\d{3})*(?:만)?\s*원)/g,  // "50만원", "180만원", "1억원"
+            // Key money amounts (only with "월" or "최대")
+            /(월\s*최대?\s*\d+만\s*원)/g,     // "월 최대 20만원", "월 50만원"
+            /(최대\s*\d+(?:억|천만|만)?\s*원)/g,  // "최대 1억원", "최대 5천만원"
             
-            // Percentages
-            /(\d+(?:\.\d+)?%)/g,  // "150%", "1.2%"
+            // Full age ranges only
+            /(만\s*\d+[-~]\d+세)/g,  // "만 19-34세"
             
-            // Age ranges - improved pattern for various formats
-            /(만\s*\d+\s*[-~]\s*\d+세)/g,  // "만 19-34세" or "만 19~34세"
-            /(\d+\s*[-~]\s*\d+세)/g,         // "19-34세" or "19~34세"
-            /(만\s*\d+세)/g,                  // "만 19세"
-            
-            // Duration patterns - NEW
-            /(\d+개월)/g,                      // "6개월", "12개월"
-            /(\d+년)/g,                         // "1년", "3년"
-            /(\d+주)/g,                         // "20주"
-            /(\d+시간)/g,                      // "20시간"
-            /(\d+회)/g,                         // "6회"
-            
-            // Important keywords - expanded for better coverage
-            /(최대|최소)/g,                    // "최대", "최소"
-            /(지원금|보조금|수당|장학금)/g,    // "지원금", "보조금", "수당", "장학금"
-            /(무료|전액|전액지원)/g,        // "무료", "전액", "전액지원"
-            /(월|연|일일)/g,                 // "월", "연", "일일"
-            /(대출|임대|할인|면제)/g,        // "대출", "임대", "할인", "면제"
-            
-            // Income criteria - NEW
-            /(중위소득\s*\d+%)/g,            // "중위소듍 150%"
-            /(소듍\s*\d+분위)/g,              // "소듍 8분위"
-            
-            // Amount expressions with "이상", "이하", "미만" - NEW
-            /(\d+(?:만원)?\s*이상)/g,         // "180만원 이상"
-            /(\d+(?:만원)?\s*이하)/g,         // "60만원 이하"
-            /(\d+(?:만원)?\s*미만)/g          // "5천만원 미만"
+            // Important durations with "최대" or "간"
+            /(최대\s*\d+개월)/g,     // "최대 6개월"
+            /(\d+개월간)/g           // "12개월간"
         ];
         
         highlightPatterns.forEach(pattern => {
