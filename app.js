@@ -810,29 +810,44 @@ function findRelevantPolicies(message, region = null) {
     const allPolicies = Object.values(policyDatabase).flat();
     const relevant = [];
     
+    console.log(`🔍 Finding policies for region: ${region}, message: "${message}"`);
+    console.log(`📊 Total policies in database: ${allPolicies.length}`);
+    
     // Simple keyword matching (can be improved with NLP)
-    const keywords = message.split(' ').filter(word => word.length > 2);
+    const keywords = message.split(' ').filter(word => word.length > 1);
     
     allPolicies.forEach(policy => {
-        // Filter by region if specified
-        if (region && policy.region && policy.region !== '전국' && policy.region !== region) {
-            return;
-        }
-        
-        const policyText = `${policy.title} ${policy.description}`.toLowerCase();
-        const matches = keywords.filter(keyword => 
-            policyText.includes(keyword.toLowerCase())
-        ).length;
-        
-        if (matches > 0 || region === policy.region) {
-            relevant.push({ ...policy, relevance: matches });
+        // If region is specified, prioritize regional policies
+        if (region) {
+            // Include policies that match the region OR are nationwide
+            if (policy.region === region || policy.region === '전국') {
+                const policyText = `${policy.title} ${policy.description}`.toLowerCase();
+                const matches = keywords.filter(keyword => 
+                    policyText.includes(keyword.toLowerCase())
+                ).length;
+                
+                // Add policy if it matches keywords OR if it's from the requested region
+                relevant.push({ ...policy, relevance: matches + (policy.region === region ? 10 : 0) });
+            }
+        } else {
+            // No specific region, use keyword matching
+            const policyText = `${policy.title} ${policy.description}`.toLowerCase();
+            const matches = keywords.filter(keyword => 
+                policyText.includes(keyword.toLowerCase())
+            ).length;
+            
+            if (matches > 0) {
+                relevant.push({ ...policy, relevance: matches });
+            }
         }
     });
+    
+    console.log(`✅ Found ${relevant.length} relevant policies`);
     
     // Sort by relevance
     relevant.sort((a, b) => b.relevance - a.relevance);
     
-    return relevant.slice(0, 5); // Return top 5 most relevant
+    return relevant.slice(0, 10); // Return top 10 most relevant
 }
 
 function generateEnhancedResponse(intent, policies, originalMessage, enhancedInfo) {
@@ -904,37 +919,101 @@ function generateResponse(intent, policies, originalMessage) {
     let references = [];
     let followUpQuestions = [];
     
-    // Handle regional queries
-    if (intent.type === 'regional' && intent.region) {
+    // Handle regional queries or when region is detected
+    if ((intent.type === 'regional' || intent.region) && intent.region) {
         const regionName = intent.region;
         const regionalPolicies = policies.filter(p => p.region === regionName || p.region === '전국');
         
+        console.log(`🏛️ Generating response for ${regionName} with ${regionalPolicies.length} policies`);
+        
         if (regionalPolicies.length > 0) {
-            message = `### 🏛️ ${regionName} 청년 정책\n\n`;
-            message += `${regionName} 지역 청년들을 위한 다양한 지원 정책을 안내해드립니다.\n\n`;
+            message = `**${regionName} 청년 지원 정책**\n\n`;
+            message += `${regionName} 지역 청년들을 위한 맞춤형 지원 정책을 안내해드립니다.\n\n`;
             
-            regionalPolicies.forEach((policy) => {
-                message += `📍 **${policy.title}**\n\n`;
-                message += `${policy.description}\n\n`;
-                if (policy.amount) message += `지원금액: ${policy.amount}\n\n`;
-                if (policy.eligibility) message += `자격조건: ${policy.eligibility}\n\n`;
-                message += '\n---\n\n';
-                
-                references.push({
-                    title: policy.title,
-                    url: policy.url || '#',
-                    snippet: policy.description
+            // Group policies by category
+            const housingPolicies = regionalPolicies.filter(p => p.title.includes('월세') || p.title.includes('주거') || p.title.includes('전월세'));
+            const employmentPolicies = regionalPolicies.filter(p => p.title.includes('구직') || p.title.includes('취업') || p.title.includes('일자리') || p.title.includes('수당'));
+            const startupPolicies = regionalPolicies.filter(p => p.title.includes('창업') || p.title.includes('CEO'));
+            
+            if (housingPolicies.length > 0) {
+                message += '🏠 **주거 지원**\n\n';
+                housingPolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n`;
+                    message += `  - 자격조건: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
                 });
-            });
+            }
+            
+            if (employmentPolicies.length > 0) {
+                message += '💼 **취업/구직 지원**\n\n';
+                employmentPolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n`;
+                    message += `  - 자격조건: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
+                });
+            }
+            
+            if (startupPolicies.length > 0) {
+                message += '🚀 **창업 지원**\n\n';
+                startupPolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n`;
+                    message += `  - 자격조건: ${policy.eligibility}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
+                });
+            }
+            
+            message += `\n💡 **더 자세한 정보는 ${regionName} 청년포털이나 해당 기관 홈페이지를 방문해주세요.**`;
             
             followUpQuestions = [
-                `${regionName} 주거 지원 정책 자세히 알려주세요`,
-                `${regionName} 취업 지원 프로그램은?`,
-                `${regionName} 창업 지원금 신청 방법은?`
+                `${regionName} 월세 지원 신청 방법은?`,
+                `${regionName} 청년수당 자격 조건은?`,
+                `${regionName} 창업 지원금 신청 기간은?`
             ];
         } else {
-            message = `죄송합니다. 현재 ${regionName} 지역의 청년 정책 정보가 준비되어 있지 않습니다.\n\n`;
-            message += `대신 전국 단위로 시행되는 청년 정책을 안내해드릴 수 있습니다.`;
+            message = `죄송합니다. 현재 제가 알고 있는 서울시의 청년 정책 정보만 있습니다. ${regionName}시의 청년 정책에 대한 정보가 없어서 도움을 드리지 못하는 점 양해 부탁드립니다.\n\n`;
+            message += `만약 ${regionName}시의 청년 정책에 대해 궁금한 사항이 있으시다면, ${regionName}시청이나 ${regionName}시 관련 기관에 문의하시는 것을 추천드립니다. 🙇‍♂️`;
+            
+            // Still show nationwide policies
+            const nationwidePolicies = policies.filter(p => p.region === '전국');
+            if (nationwidePolicies.length > 0) {
+                message += '\n\n**전국 단위 청년 정책**\n\n';
+                nationwidePolicies.forEach((policy) => {
+                    message += `• **${policy.title}**\n`;
+                    message += `  - ${policy.description}\n`;
+                    message += `  - 지원금액: ${policy.amount}\n\n`;
+                    
+                    references.push({
+                        title: policy.title,
+                        url: policy.url || '#',
+                        snippet: `${policy.description} - ${policy.amount}`,
+                        phone: ''
+                    });
+                });
+            }
             
             followUpQuestions = [
                 '전국 청년 주거 지원 정책 알려주세요',
@@ -943,7 +1022,14 @@ function generateResponse(intent, policies, originalMessage) {
             ];
         }
         
-        return { message, references, followUpQuestions };
+        return { 
+            message, 
+            references, 
+            followUpQuestions, 
+            intent: intent.type,
+            hasPoster: false,
+            timestamp: new Date().toISOString()
+        };
     }
     
     switch (intent.type) {
