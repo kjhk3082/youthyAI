@@ -12,10 +12,12 @@ class SearchService {
     // Tavily API - 실시간 웹 검색으로 최신 청년 정책 정보 가져오기
     async searchWithTavily(query) {
         try {
-            if (!this.tavilyApiKey) {
+            if (!this.tavilyApiKey || this.tavilyApiKey === 'your-tavily-api-key-here') {
                 console.log('Tavily API key not configured');
                 return null;
             }
+            
+            console.log(`🔍 Tavily API: Searching for "${query}"`);
 
             const response = await fetch('https://api.tavily.com/search', {
                 method: 'POST',
@@ -64,10 +66,12 @@ class SearchService {
     // Perplexity API - AI 기반 정책 정보 요약 및 분석
     async searchWithPerplexity(query) {
         try {
-            if (!this.perplexityApiKey) {
+            if (!this.perplexityApiKey || this.perplexityApiKey === 'your-perplexity-api-key-here') {
                 console.log('Perplexity API key not configured');
                 return null;
             }
+            
+            console.log(`🤖 Perplexity API: Analyzing "${query}"`);
 
             const response = await fetch('https://api.perplexity.ai/chat/completions', {
                 method: 'POST',
@@ -119,6 +123,8 @@ class SearchService {
                 console.log('Naver Maps API not configured');
                 return null;
             }
+            
+            console.log(`📍 Naver Maps API: Finding youth centers in ${region || 'all regions'}`);
 
             // 지역별 청년센터 검색
             const searchQuery = `${region} 청년센터 청년정책 상담`;
@@ -154,14 +160,23 @@ class SearchService {
 
     // 통합 검색 - 모든 API를 활용한 종합 정보 제공
     async searchComprehensive(query, region = null) {
-        console.log(`🔍 Comprehensive search for: ${query}`);
+        console.log(`🔍 Comprehensive search for: ${query} (Region: ${region || 'None'})`);
         
-        // 병렬로 모든 API 호출
-        const [tavilyResult, perplexityResult, naverResult] = await Promise.all([
-            this.searchWithTavily(query),
-            this.searchWithPerplexity(query),
-            region ? this.searchNearbyYouthCenters(query, region) : Promise.resolve(null)
-        ]);
+        // 병렬로 모든 API 호출 - 에러가 나도 계속 진행
+        const [tavilyResult, perplexityResult, naverResult] = await Promise.allSettled([
+            this.searchWithTavily(query).catch(err => {
+                console.error('Tavily error:', err.message);
+                return null;
+            }),
+            this.searchWithPerplexity(query).catch(err => {
+                console.error('Perplexity error:', err.message);
+                return null;
+            }),
+            region ? this.searchNearbyYouthCenters(query, region).catch(err => {
+                console.error('Naver error:', err.message);
+                return null;
+            }) : Promise.resolve(null)
+        ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
 
         // 결과 통합
         const comprehensiveResult = {

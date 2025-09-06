@@ -83,6 +83,24 @@ const policyDatabase = {
             amount: "월 최대 15만원 (10개월간)",
             url: "https://www.incheon.go.kr",
             region: "인천"
+        },
+        {
+            id: 21,
+            title: "강원도 청년 월세 지원",
+            description: "강원도 청년의 주거 안정을 위한 월세 지원 사업",
+            eligibility: "만 19-34세 강원도 거주 무주택 청년",
+            amount: "월 최대 15만원 (12개월간)",
+            url: "https://www.provin.gangwon.kr",
+            region: "강원"
+        },
+        {
+            id: 22,
+            title: "춘천시 청년 창업 지원",
+            description: "춘천시 청년 창업가를 위한 창업 지원금",
+            eligibility: "만 19-39세 춘천시 거주 예비창업자",
+            amount: "최대 3천만원",
+            url: "https://www.chuncheon.go.kr",
+            region: "강원"
         }
     ],
     employment: [
@@ -126,10 +144,28 @@ const policyDatabase = {
             id: 16,
             title: "서울시 청년수당",
             description: "미취업 청년 구직활동 지원",
-            eligibility: "만 19-34세, 중위소듍 150% 이하",
+            eligibility: "만 19-34세, 중위소득 150% 이하",
             amount: "월 50만원 (최대 6개월)",
             url: "https://youth.seoul.go.kr",
             region: "서울"
+        },
+        {
+            id: 23,
+            title: "강원도 청년 구직활동 지원금",
+            description: "강원도 미취업 청년의 구직활동 지원",
+            eligibility: "만 18-34세 강원도 거주 미취업 청년",
+            amount: "월 50만원 (최대 6개월)",
+            url: "https://www.provin.gangwon.kr",
+            region: "강원"
+        },
+        {
+            id: 24,
+            title: "춘천시 청년 일자리 지원",
+            description: "춘천시 청년 취업 지원 프로그램",
+            eligibility: "만 18-39세 춘천시 거주 청년",
+            amount: "취업 성공 시 100만원 지원",
+            url: "https://www.chuncheon.go.kr",
+            region: "강원"
         }
     ],
     startup: [
@@ -320,10 +356,12 @@ async function processMessage(message) {
     // Try to get enhanced information from external APIs
     let enhancedInfo = null;
     try {
-        console.log('🔍 Searching for enhanced information...');
+        console.log(`🔍 Searching for enhanced information for: "${message}" (region: ${region || 'none'})`);
         enhancedInfo = await searchService.searchComprehensive(message, region);
+        console.log('✅ Enhanced info retrieved:', enhancedInfo ? 'Success' : 'No data');
     } catch (error) {
-        console.log('External API search failed, using local data:', error.message);
+        console.error('External API search failed:', error);
+        console.log('Using local data as fallback');
     }
     
     // Generate response based on intent, policies, and enhanced info
@@ -335,11 +373,29 @@ async function processMessage(message) {
 function analyzeIntent(message) {
     // Check for region-specific queries
     const regions = ['부산', '경기', '인천', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+    
+    // Also check for specific cities
+    const cities = ['춘천', '원주', '강릉', '평창', '정선', '철원', '화천', '양구', '인제', '고성', '양양', '홍천', '횡성', '영월', '태백', '삼척', '동해'];
+    
     let region = null;
+    // First check for major regions
     for (const r of regions) {
         if (message.includes(r)) {
             region = r;
             break;
+        }
+    }
+    
+    // If no major region found, check for cities and map to their regions
+    if (!region) {
+        for (const city of cities) {
+            if (message.includes(city)) {
+                // Map cities to their regions
+                if (['춘천', '원주', '강릉', '평창', '정선', '철원', '화천', '양구', '인제', '고성', '양양', '홍천', '횡성', '영월', '태백', '삼척', '동해'].includes(city)) {
+                    region = '강원';
+                }
+                break;
+            }
         }
     }
     
