@@ -1381,3 +1381,45 @@ body {
     color: #007AFF;
     font-weight: 600;
 }
+
+/* Policy Links Styling */
+.policy-link, 
+.message-content a {
+    color: #007AFF;
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+    display: inline-block;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.policy-link:hover,
+.message-content a:hover {
+    background-color: rgba(0, 122, 255, 0.08);
+    border-bottom: 1px solid #007AFF;
+    color: #0051CC;
+}
+
+.policy-link:active,
+.message-content a:active {
+    background-color: rgba(0, 122, 255, 0.15);
+}
+
+/* Make links stand out in messages */
+.ai-message .policy-link,
+.ai-message a {
+    background-color: rgba(0, 122, 255, 0.05);
+    padding: 3px 8px;
+    margin: 0 2px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.ai-message .policy-link:hover,
+.ai-message a:hover {
+    background-color: rgba(0, 122, 255, 0.12);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+}

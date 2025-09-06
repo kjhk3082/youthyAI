@@ -405,6 +405,10 @@ class YouthyChat {
     formatMessage(text) {
         // Enhanced formatting with beautiful blue highlights
         
+        // Convert Markdown links to HTML links FIRST (before other processing)
+        // [text](url) format
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="policy-link">$1</a>');
+        
         // Headers
         text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
         text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>');
