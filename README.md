@@ -375,6 +375,8 @@ MIT License - 자유롭게 사용, 수정, 배포 가능합니다.
 
 ## 📞 문의 및 지원
 
+- kjhk3082@naver.com 기획 김재형
+
 - **GitHub Issues**: [https://github.com/kjhk3082/youthyAI/issues](https://github.com/kjhk3082/youthyAI/issues)
 - **Pull Requests**: [https://github.com/kjhk3082/youthyAI/pulls](https://github.com/kjhk3082/youthyAI/pulls)
 
@@ -382,4 +384,4 @@ MIT License - 자유롭게 사용, 수정, 배포 가능합니다.
 
 **Made with ❤️ for Korean Youth by YOUTHY AI Team**
 
-*"전국 다 넣어줄래? 전국 다!!" - 이제 모든 지역의 청년 정책을 한 곳에서!* 🚀
+*"청년정책 지도에서 콕! 전국 다!!" - 이제 모든 지역의 청년 정책을 한 곳에서!* 🚀
