@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs');
+const { YouthPolicyService, DISTRICT_CODES } = require('./chatbot-youth-api');
 require('dotenv').config();
 
 const app = express();
@@ -27,8 +28,16 @@ app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
-// Load youth policies data
-const youthPolicies = JSON.parse(fs.readFileSync(path.join(__dirname, 'database', 'youth_policies.json'), 'utf8'));
+// Initialize Youth Policy Service
+const policyService = new YouthPolicyService();
+
+// Load backup policies data (fallback)
+let youthPolicies = [];
+try {
+    youthPolicies = JSON.parse(fs.readFileSync(path.join(__dirname, 'database', 'youth_policies.json'), 'utf8'));
+} catch (error) {
+    console.log('📦 Backup data not found, using live API only');
+}
 
 // Routes
 app.get('/', (req, res) => {
@@ -49,14 +58,28 @@ app.post('/api/chat', async (req, res) => {
         const { message, region } = req.body;
         console.log(`📨 Received message: ${message}`);
         
-        // Analyze intent
+        // 온통청년 API를 사용한 실시간 정챒9 분석 및 추천
+        const recommendation = await policyService.analyzeAndRecommend(message);
+        
+        // 추가로 로컬 데이터도 확인 (fallback)
         const intent = analyzeIntent(message);
+        const localPolicies = findRelevantPolicies(message, region);
         
-        // Find relevant policies
-        const relevantPolicies = findRelevantPolicies(message, region);
+        // 실시간 데이터와 로컬 데이터 병합
+        const allPolicies = [...recommendation.policies];
+        if (localPolicies.length > 0 && recommendation.policies.length === 0) {
+            allPolicies.push(...localPolicies.slice(0, 3));
+        }
         
-        // Generate comprehensive response
-        const response = generateDetailedResponse(intent, relevantPolicies, message);
+        // 응답 생성
+        const response = {
+            message: generateAIResponse(intent, allPolicies, message, recommendation.analysis),
+            policies: allPolicies.slice(0, 5),
+            intent: intent,
+            analysis: recommendation.analysis,
+            totalCount: recommendation.totalCount,
+            source: recommendation.policies.length > 0 ? '온통청년 실시간 API' : '로컬 데이터'
+        };
         
         res.json(response);
     } catch (error) {
@@ -74,17 +97,37 @@ app.get('/api/policies/:category', (req, res) => {
     res.json(policies);
 });
 
-app.get('/api/popular-policies', (req, res) => {
-    // Return most popular policies
-    const popularPolicies = [
-        youthPolicies.find(p => p.title.includes('월세')),
-        youthPolicies.find(p => p.title.includes('국민취업')),
-        youthPolicies.find(p => p.title.includes('청년희망적금')),
-        youthPolicies.find(p => p.title.includes('청년내일채움공제')),
-        youthPolicies.find(p => p.title.includes('국민내일배움카드'))
-    ].filter(Boolean);
-    
-    res.json(popularPolicies);
+app.get('/api/popular-policies', async (req, res) => {
+    try {
+        // 온통청년 API에서 실시간 인기 정챒9 조회
+        const popularPolicies = await policyService.getPopularPolicies();
+        
+        const formatted = popularPolicies.map(p => policyService.formatPolicyForChat(p));
+        
+        res.json({
+            success: true,
+            policies: formatted,
+            source: '온통청년 API',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Popular policies error:', error);
+        // Fallback to local data
+        const popularPolicies = [
+            youthPolicies.find(p => p.title && p.title.includes('월세')),
+            youthPolicies.find(p => p.title && p.title.includes('국민취업')),
+            youthPolicies.find(p => p.title && p.title.includes('청년희망적금')),
+            youthPolicies.find(p => p.title && p.title.includes('청년내일채움공제')),
+            youthPolicies.find(p => p.title && p.title.includes('국민내일배움카드'))
+        ].filter(Boolean);
+        
+        res.json({
+            success: true,
+            policies: popularPolicies,
+            source: 'local',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Helper functions

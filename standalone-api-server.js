@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 require('dotenv').config();
@@ -23,6 +24,7 @@ app.use(express.static('public'));
 
 // Import district policies routes
 const districtPoliciesRouter = require('./district-policies-api');
+const popularPoliciesRouter = require('./popular-policies-api');
 
 // Swagger configuration
 const swaggerOptions = {
@@ -131,6 +133,24 @@ interface DistrictPolicies {
         email: 'support@youthpolicy.kr'
       }
     },
+    tags: [
+      {
+        name: 'Special Features',
+        description: '특수 기능 (특수 탑10 등)'
+      },
+      {
+        name: 'District Policies',
+        description: '구별 청년정책 조회'
+      },
+      {
+        name: 'Popular Policies',
+        description: '인기 정책 TOP 10'
+      },
+      {
+        name: 'Youth Center API',
+        description: '온통청년 API 연동'
+      }
+    ],
     servers: [
       {
         url: '',
@@ -259,6 +279,62 @@ interface DistrictPolicies {
               }
             }
           }
+        },
+        PopularKeywordsResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean'
+            },
+            type: {
+              type: 'string',
+              enum: ['national', 'seoul', 'district']
+            },
+            district: {
+              type: 'string',
+              nullable: true
+            },
+            keywords: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: '인기 정챒9 TOP 10 제목 목록'
+            },
+            total: {
+              type: 'integer'
+            },
+            lastUpdate: {
+              type: 'string',
+              format: 'date-time'
+            },
+            source: {
+              type: 'string',
+              enum: ['live', 'cached']
+            }
+          }
+        },
+        TrendingPoliciesResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean'
+            },
+            trending: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: '실시간 급상승 정챒9 목록'
+            },
+            period: {
+              type: 'string'
+            },
+            lastUpdate: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
         }
       }
     }
@@ -276,6 +352,7 @@ const policyFetcher = require('./real-policy-fetcher');
 
 // API Routes
 app.use('/api', districtPoliciesRouter);
+app.use('/api', popularPoliciesRouter);
 
 /**
  * 백엔드 팀의 JPA Repository와 동일한 엔드포인트
@@ -457,6 +534,99 @@ app.post('/api/policies/search/advanced', async (req, res) => {
   }
 });
 
+// 특수 탑10 - 서울 전체 조회수 기반 TOP 10 정책 제목만 반환
+app.get('/api/special-top10', async (req, res) => {
+  try {
+    console.log('📊 특수 탑10 정책 요청');
+    
+    // 온통청년 API에서 전체 정책 조회
+    const params = {
+      openApiVlak: process.env.YOUTH_API_KEY,
+      srchPolyBizSecd: '003002001', // 서울
+      display: 100,
+      pageIndex: 1
+    };
+    
+    const response = await axios.get('https://www.youthcenter.go.kr/opi/youthPlcyList.do', {
+      params,
+      timeout: 10000
+    });
+    
+    if (response.data && response.data.youthPolicyList) {
+      const policies = response.data.youthPolicyList;
+      
+      // 조회수(inqCnt) 기준으로 정렬하여 상위 10개 추출
+      const top10 = policies
+        .filter(p => p.inqCnt) // 조회수가 있는 정책만
+        .sort((a, b) => parseInt(b.inqCnt) - parseInt(a.inqCnt)) // 조회수 내림차순
+        .slice(0, 10)
+        .map(p => p.polyBizSjnm); // 정책 제목만 추출
+      
+      console.log(`✅ 특수 탑10 정책 ${top10.length}개 반환`);
+      
+      res.json({
+        success: true,
+        type: 'special-top10',
+        keywords: top10,
+        total: top10.length,
+        lastUpdate: new Date().toISOString(),
+        source: 'real-api',
+        description: '서울 전체 청년정책 조회수 기반 TOP 10'
+      });
+    } else {
+      // 폴백 데이터
+      const fallbackKeywords = [
+        '청년국가자격증 응시료 지원',
+        '으뜸관악 청년통장',
+        '10월 일어나랑 증명사진 찍어드립니다',
+        '청년이사차량 지원',
+        '이사비 지원사업',
+        '신혼부부 및 청년 전월세 대출이자 지원사업',
+        '국가 자격증 및 어학시험 응시료 지원사업',
+        '공직체험 인턴십',
+        '해외 인턴십 채용',
+        '서울청년문화패스'
+      ];
+      
+      res.json({
+        success: true,
+        type: 'special-top10',
+        keywords: fallbackKeywords,
+        total: 10,
+        lastUpdate: new Date().toISOString(),
+        source: 'fallback',
+        description: '서울 전체 청년정책 조회수 기반 TOP 10'
+      });
+    }
+  } catch (error) {
+    console.error('특수 탑10 조회 오류:', error);
+    
+    // 에러 시 폴백 데이터 반환
+    const fallbackKeywords = [
+      '청년국가자격증 응시료 지원',
+      '으뜸관악 청년통장',
+      '10월 일어나랑 증명사진 찍어드립니다',
+      '청년이사차량 지원',
+      '이사비 지원사업',
+      '신혼부부 및 청년 전월세 대출이자 지원사업',
+      '국가 자격증 및 어학시험 응시료 지원사업',
+      '공직체험 인턴십',
+      '해외 인턴십 채용',
+      '서울청년문화패스'
+    ];
+    
+    res.json({
+      success: true,
+      type: 'special-top10',
+      keywords: fallbackKeywords,
+      total: 10,
+      lastUpdate: new Date().toISOString(),
+      source: 'fallback',
+      description: '서울 전체 청년정책 조회수 기반 TOP 10'
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -466,10 +636,63 @@ app.get('/', (req, res) => {
     endpoints: [
       'GET /api/district-policies',
       'GET /api/district-policies/:district',
-      'GET /api/hot-policies'
+      'GET /api/hot-policies',
+      'GET /api/special-top10'
     ]
   });
 });
+
+/**
+ * @swagger
+ * /api/special-top10:
+ *   get:
+ *     summary: 특수 탑10 - 서울 전체 인기 정책
+ *     description: 서울 전체 청년정책 중 조회수(inqCnt) 기반 상위 10개 정책 제목만 반환합니다
+ *     tags: [Special Features]
+ *     responses:
+ *       200:
+ *         description: 성공적으로 TOP 10 정책 제목을 반환
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 type:
+ *                   type: string
+ *                   example: "special-top10"
+ *                 keywords:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example:
+ *                     - "청년국가자격증 응시료 지원"
+ *                     - "으뜸관악 청년통장"
+ *                     - "10월 일어나랑 증명사진 찍어드립니다"
+ *                     - "청년이사차량 지원"
+ *                     - "이사비 지원사업"
+ *                     - "신혼부부 및 청년 전월세 대출이자 지원사업"
+ *                     - "국가 자격증 및 어학시험 응시료 지원사업"
+ *                     - "공직체험 인턴십"
+ *                     - "해외 인턴십 채용"
+ *                     - "서울청년문화패스"
+ *                 total:
+ *                   type: integer
+ *                   example: 10
+ *                 lastUpdate:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2025-09-06T12:00:00.000Z"
+ *                 source:
+ *                   type: string
+ *                   enum: [real-api, fallback]
+ *                   example: "real-api"
+ *                 description:
+ *                   type: string
+ *                   example: "서울 전체 청년정책 조회수 기반 TOP 10"
+ */
 
 /**
  * @swagger

@@ -59,58 +59,69 @@ const POLICY_SOURCES = {
 };
 
 /**
- * 온통청년 API에서 정책 가져오기 (백엔드 팀 방식)
+ * 온통청년 API에서 정책 가져오기 (실제 작동하는 GET 방식)
+ * @param {string} zipCd - 법정동코드 (5자리) 예: '11680' (강남구)
+ * @param {number} pageNum - 페이지 번호
+ * @param {number} pageSize - 페이지 크기
  */
-async function fetchFromYouthCenter(query = '서울', pageIndex = 1, display = 100) {
+async function fetchFromYouthCenter(zipCd = '11000', pageNum = 1, pageSize = 100) {
   try {
-    const { url, apiKey } = POLICY_SOURCES.YOUTH_CENTER;
+    const apiKey = '2a27a665-5b2c-48dd-913e-965ea1956104';
+    const apiUrl = 'https://www.youthcenter.go.kr/go/ythip/getPlcy';
     
+    // GET 요청 파라미터
     const params = {
-      openApiVlak: apiKey,
-      pageIndex: pageIndex,
-      display: display,
-      query: query
+      apiKeyNm: apiKey,
+      pageNum: pageNum,
+      pageSize: pageSize,
+      rtnType: 'json'
     };
     
-    console.log(`[YouthCenter] Fetching policies with query: ${query}`);
+    // zipCd가 있으면 추가
+    if (zipCd && zipCd !== '11000') {
+      params.zipCd = zipCd;
+    }
     
-    const response = await axios.get(url, {
+    console.log(`[YouthCenter] 실제 API 호출 (zipCd: ${zipCd || '전체'})`);
+    
+    const response = await axios.get(apiUrl, {
       params: params,
       timeout: 30000,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json, text/html, */*',
-        'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
-        'Referer': 'https://www.youthcenter.go.kr/'
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0'
       }
     });
     
-    if (response.data && response.data.youthPolicy) {
-      const policies = response.data.youthPolicy;
-      console.log(`[YouthCenter] Retrieved ${policies.length} policies`);
+    // 온통청년 API 응답 처리 (result.youthPolicyList 구조)
+    if (response.data && response.data.result && response.data.result.youthPolicyList) {
+      const policies = response.data.result.youthPolicyList;
+      console.log(`[YouthCenter] ✅ 성공! ${policies.length}개 정책 수신`);
       
       return policies.map(p => new YouthPolicyData({
-        policyNo: p.bizId || p.polyBizSecd,
-        policyName: p.polyBizSjnm,
-        policySummary: p.polyItcnCn,
-        policyField: p.polyRlmCd,
-        supportContent: p.sporCn,
-        operationPeriod: p.bizPrdCn,
-        applicationPeriod: p.rqutPrdCn,
-        supportScale: p.sprtTrgtCnt,
-        minAge: p.ageInfo ? parseInt(p.ageInfo.match(/\d+/)?.[0] || 19) : 19,
-        maxAge: p.ageInfo ? parseInt(p.ageInfo.match(/~\s*(\d+)/)?.[1] || 39) : 39,
-        incomeCondition: p.incomeRestriction,
-        educationRequirement: p.empmSttsCn,
-        majorRequirement: p.majrRqisCn,
-        employmentStatus: p.empmSttsCn,
-        specializedField: p.splzRlmRqisCn,
-        additionalInfo: p.etcCn,
-        participationRestriction: p.ptcpLmttTrgtCn,
-        applicationProcess: p.rqutProcCn,
-        evaluationAndAnnouncement: p.pstnPaprCn,
-        applicationSite: p.rfcSiteUrla1 || p.rfcSiteUrla2,
-        requiredDocuments: p.rqutUrla
+        policyNo: p.plcyNo,
+        policyName: p.plcyNm,
+        policySummary: p.plcyExplnCn,
+        policyField: p.lclsfNm,
+        supportContent: p.plcySprtCn,
+        operationPeriod: `${p.bizPrdBgngYmd || ''} ~ ${p.bizPrdEndYmd || ''}`,
+        applicationPeriod: p.aplyYmd,
+        supportScale: p.sprtSclCnt,
+        minAge: parseInt(p.sprtTrgtMinAge) || 19,
+        maxAge: parseInt(p.sprtTrgtMaxAge) || 39,
+        incomeCondition: `${p.earnMinAmt || ''} ~ ${p.earnMaxAmt || ''}`,
+        educationRequirement: p.schoolCd,
+        majorRequirement: p.plcyMajorCd,
+        employmentStatus: p.jobCd,
+        specializedField: p.sBizCd,
+        additionalInfo: p.etcMttrCn,
+        participationRestriction: p.ptcpPrpTrgtCn,
+        applicationProcess: p.plcyAplyMthdCn,
+        evaluationAndAnnouncement: p.srngMthdCn,
+        applicationSite: p.aplyUrlAddr,
+        requiredDocuments: p.sbmsnDcmntCn,
+        viewCount: parseInt(p.inqCnt) || 0,
+        residences: p.zipCd ? [{ zipCode: p.zipCd }] : []
       }));
     }
     

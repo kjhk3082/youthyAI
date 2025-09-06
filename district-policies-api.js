@@ -1,35 +1,38 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
+const { getDistrictPolicies, SEOUL_COMMON_POLICIES } = require('./district-real-policies');
 require('dotenv').config();
 
-// 지역구 매핑 (영문 -> 한글 -> API 코드)
+// 지역구 매핑 (영문 -> 한글 -> 온통청년 API zipCd)
+// 온통청년 API의 zipCd는 5자리 법정동코드 사용
+// 서울특별시: 11, 각 구별 코드는 아래와 같음
 const DISTRICT_MAPPING = {
-  'Gangnam-gu': { ko: '강남구', code: '003002001001001' },
-  'Gangdong-gu': { ko: '강동구', code: '003002001001002' },
-  'Gangbuk-gu': { ko: '강북구', code: '003002001001003' },
-  'Gangseo-gu': { ko: '강서구', code: '003002001001004' },
-  'Gwanak-gu': { ko: '관악구', code: '003002001001005' },
-  'Gwangjin-gu': { ko: '광진구', code: '003002001001006' },
-  'Guro-gu': { ko: '구로구', code: '003002001001007' },
-  'Geumcheon-gu': { ko: '금천구', code: '003002001001008' },
-  'Nowon-gu': { ko: '노원구', code: '003002001001009' },
-  'Dobong-gu': { ko: '도봉구', code: '003002001001010' },
-  'Dongdaemun-gu': { ko: '동대문구', code: '003002001001011' },
-  'Dongjak-gu': { ko: '동작구', code: '003002001001012' },
-  'Mapo-gu': { ko: '마포구', code: '003002001001013' },
-  'Seodaemun-gu': { ko: '서대문구', code: '003002001001014' },
-  'Seocho-gu': { ko: '서초구', code: '003002001001015' },
-  'Seongdong-gu': { ko: '성동구', code: '003002001001016' },
-  'Seongbuk-gu': { ko: '성북구', code: '003002001001017' },
-  'Songpa-gu': { ko: '송파구', code: '003002001001018' },
-  'Yangcheon-gu': { ko: '양천구', code: '003002001001019' },
-  'Yeongdeungpo-gu': { ko: '영등포구', code: '003002001001020' },
-  'Yongsan-gu': { ko: '용산구', code: '003002001001021' },
-  'Eunpyeong-gu': { ko: '은평구', code: '003002001001022' },
-  'Jongno-gu': { ko: '종로구', code: '003002001001023' },
-  'Jung-gu': { ko: '중구', code: '003002001001024' },
-  'Jungnang-gu': { ko: '중랑구', code: '003002001001025' }
+  'Gangnam-gu': { ko: '강남구', code: '003002001001001', zipCd: '11680' },
+  'Gangdong-gu': { ko: '강동구', code: '003002001001002', zipCd: '11740' },
+  'Gangbuk-gu': { ko: '강북구', code: '003002001001003', zipCd: '11305' },
+  'Gangseo-gu': { ko: '강서구', code: '003002001001004', zipCd: '11500' },
+  'Gwanak-gu': { ko: '관악구', code: '003002001001005', zipCd: '11620' },
+  'Gwangjin-gu': { ko: '광진구', code: '003002001001006', zipCd: '11215' },
+  'Guro-gu': { ko: '구로구', code: '003002001001007', zipCd: '11530' },
+  'Geumcheon-gu': { ko: '금천구', code: '003002001001008', zipCd: '11545' },
+  'Nowon-gu': { ko: '노원구', code: '003002001001009', zipCd: '11350' },
+  'Dobong-gu': { ko: '도봉구', code: '003002001001010', zipCd: '11320' },
+  'Dongdaemun-gu': { ko: '동대문구', code: '003002001001011', zipCd: '11230' },
+  'Dongjak-gu': { ko: '동작구', code: '003002001001012', zipCd: '11590' },
+  'Mapo-gu': { ko: '마포구', code: '003002001001013', zipCd: '11440' },
+  'Seodaemun-gu': { ko: '서대문구', code: '003002001001014', zipCd: '11410' },
+  'Seocho-gu': { ko: '서초구', code: '003002001001015', zipCd: '11650' },
+  'Seongdong-gu': { ko: '성동구', code: '003002001001016', zipCd: '11200' },
+  'Seongbuk-gu': { ko: '성북구', code: '003002001001017', zipCd: '11290' },
+  'Songpa-gu': { ko: '송파구', code: '003002001001018', zipCd: '11710' },
+  'Yangcheon-gu': { ko: '양천구', code: '003002001001019', zipCd: '11470' },
+  'Yeongdeungpo-gu': { ko: '영등포구', code: '003002001001020', zipCd: '11560' },
+  'Yongsan-gu': { ko: '용산구', code: '003002001001021', zipCd: '11170' },
+  'Eunpyeong-gu': { ko: '은평구', code: '003002001001022', zipCd: '11380' },
+  'Jongno-gu': { ko: '종로구', code: '003002001001023', zipCd: '11110' },
+  'Jung-gu': { ko: '중구', code: '003002001001024', zipCd: '11140' },
+  'Jungnang-gu': { ko: '중랑구', code: '003002001001025', zipCd: '11260' }
 };
 
 // 카테고리 매핑
@@ -162,156 +165,136 @@ function formatTarget(ageInfo, edubg) {
   return ageInfo;
 }
 
-// Youth Center API 호출 - 실제 작동하는 서울시 공공 API 사용
+// 온통청년 API 호출 - 구별 정책 가져오기
 async function fetchFromYouthCenter(districtCode, page = 1) {
   try {
-    // 구역 이름 가져오기
+    // 구역 정보 가져오기
     const districtEntry = Object.entries(DISTRICT_MAPPING).find(([k, v]) => v.code === districtCode);
     const districtName = districtEntry?.[1]?.ko || '서울';
+    const zipCd = districtEntry?.[1]?.zipCd || '11000'; // 서울시 전체 코드
     
-    console.log(`🔄 청년 정책 API 호출 중...`);
-    console.log(`  District: ${districtName}`);
+    console.log(`🔄 온통청년 API 호출 중...`);
+    console.log(`  District: ${districtName} (zipCd: ${zipCd})`);
     
-    // 서울시 열린데이터광장 청년정책 API 사용
-    // 이 API는 실제로 작동하며 서울시 청년정책 데이터를 제공합니다
-    const apiKey = '6d4879567767646b3131397952547566'; // 서울시 오픈API 샘플키
-    const apiUrl = `http://openapi.seoul.go.kr:8088/${apiKey}/json/youthPolicy/1/100/`;
+    // 온통청년 API 사용
+    const apiKey = '2a27a665-5b2c-48dd-913e-965ea1956104'; // 실제 API 키
+    const apiUrl = 'https://www.youthcenter.go.kr/go/ythip/getPlcy';
+    
+    // API 파라미터 설정
+    const params = {
+      apiKeyNm: apiKey,
+      pageNum: page,
+      pageSize: 50,
+      rtnType: 'json',
+      zipCd: zipCd, // 구별 필터링을 위한 법정동코드
+      plcyNm: '서울' // 서울 관련 정책만
+    };
     
     console.log(`  URL: ${apiUrl}`);
+    console.log(`  Params:`, params);
     
     const response = await axios.get(apiUrl, {
-      timeout: 10000,
+      params: params,
+      timeout: 15000,
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0'
       }
     });
     
     console.log(`  Response Status: ${response.status}`);
     
-    if (response.data && response.data.youthPolicy) {
-      const policies = response.data.youthPolicy.row || [];
-      console.log(`✅ 성공: ${policies.length}개의 서울시 청년정책 데이터 수신!`);
+    // 온통청년 API 응답 처리 (result.youthPolicyList 구조)
+    if (response.data && response.data.result && response.data.result.youthPolicyList) {
+      const policies = response.data.result.youthPolicyList || [];
+      const totalCount = response.data.result.pagging?.totCount || 0;
+      console.log(`✅ 성공: ${policies.length}개의 구별 청년정책 데이터 수신!`);
       
-      // 구별로 필터링 (구 이름이 정책에 포함된 경우)
-      const filteredPolicies = policies.filter(policy => {
-        // 모든 정책을 포함하되, 해당 구가 언급된 정책을 우선
-        const policyText = JSON.stringify(policy).toLowerCase();
-        return policyText.includes(districtName.toLowerCase()) || 
-               policyText.includes('서울') || 
-               policyText.includes('전체');
-      });
+      // 정책이 없으면 서울시 전체 정책 조회
+      if (policies.length === 0 && zipCd !== '11000') {
+        console.log('  구별 정책이 없음, 서울시 전체 정책 재조회...');
+        const seoulParams = { ...params, zipCd: '11000' };
+        const seoulResponse = await axios.get(apiUrl, {
+          params: seoulParams,
+          timeout: 10000,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+        
+        if (seoulResponse.data && seoulResponse.data.youthPolicyList) {
+          const seoulPolicies = seoulResponse.data.youthPolicyList || [];
+          console.log(`  서울시 전체 정책: ${seoulPolicies.length}개`);
+          
+          // 온통청년 API 데이터 변환
+          return seoulPolicies.slice(0, 15).map((policy, index) => ({
+            polyBizSjnm: policy.plcyNm || `청년정책 ${index + 1}`,
+            polyBizTy: policy.lclsfNm || '003002001',
+            polyBizCn: policy.plcySprtCn || '청년 지원 정책',
+            polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
+            ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
+            rqutPrdEnd: policy.aplyYmd || policy.bizPrdEndYmd || '상시모집',
+            rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
+            applUrl: policy.aplyUrlAddr || 'https://www.youthcenter.go.kr',
+            sporCn: policy.plcySprtCn || '지원내용 참조',
+            cnsgNmor: policy.sprvsnInstCdNm || '서울시',
+            _source: '온통청년',
+            _isRealData: true
+          }));
+        }
+      }
       
-      // 정책이 없으면 전체 서울시 정책 사용
-      const finalPolicies = filteredPolicies.length > 0 ? filteredPolicies : policies;
-      
-      console.log(`  구별 필터링: ${finalPolicies.length}개 정책`);
-      
-      // 데이터 변환
-      return finalPolicies.slice(0, 20).map((policy, index) => ({
-        polyBizSjnm: policy.POLICY_NAME || policy.BIZ_NAME || `서울시 청년정책 ${index + 1}`,
-        polyBizTy: policy.POLICY_TYPE || '003002001',
-        polyBizCn: policy.POLICY_CONTENT || policy.SUPPORT_CONTENT || '청년 지원 정책',
-        polyItcnCn: policy.POLICY_DESC || policy.POLICY_CONTENT || '정책 상세 내용',
-        ageInfo: policy.AGE_INFO || policy.TARGET || '만 19세 ~ 39세',
-        rqutPrdEnd: policy.APPLY_PERIOD || policy.PERIOD || '상시모집',
-        rqutProcCn: policy.APPLY_METHOD || '온라인 신청',
-        applUrl: policy.APPLY_URL || policy.DETAIL_URL || 'https://youth.seoul.go.kr',
-        sporCn: policy.SUPPORT_CONTENT || policy.BENEFIT || '지원내용 참조',
-        cnsgNmor: policy.DEPT_NAME || policy.ORGANIZATION || '서울시',
-        _source: '서울시 열린데이터광장',
-        _isRealData: true
+      // 구별 정책 데이터 변환
+      return policies.slice(0, 20).map((policy, index) => ({
+        polyBizSjnm: policy.plcyNm || `${districtName} 청년정책 ${index + 1}`,
+        polyBizTy: policy.lclsfNm || '003002001',
+        polyBizCn: policy.plcySprtCn || '청년 지원 정책',
+        polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
+        ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
+        rqutPrdEnd: policy.aplyYmd || policy.bizPrdEndYmd || '상시모집',
+        rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
+        applUrl: policy.aplyUrlAddr || 'https://www.youthcenter.go.kr',
+        sporCn: policy.plcySprtCn || '지원내용 참조',
+        cnsgNmor: policy.sprvsnInstCdNm || districtName,
+        _source: '온통청년',
+        _isRealData: true,
+        _isDistrictPolicy: true
       }));
     }
     
-    // 백업 옵션: 서울시 청년포털 크롤링 데이터 사용
-    console.log('  서울시 API 응답 없음, 청년포털 데이터 시도...');
+    // 백업 옵션: 실제 구별 정책 데이터 사용
+    console.log('  온통청년 API 응답 없음, 실제 구별 정책 데이터 사용...');
     
-    // 실제 서울시 청년정책 예시 데이터 (2024년 기준)
-    const realSeoulPolicies = [
-      {
-        polyBizSjnm: '서울시 청년월세 한시 특별지원',
-        polyBizTy: '003002003',
-        polyBizCn: '월 20만원씩 최대 12개월 월세 지원',
-        polyItcnCn: '서울시 거주 무주택 청년(만 19~39세) 대상 월세 지원',
-        ageInfo: '만 19세 ~ 39세',
-        rqutPrdEnd: '2025-12-31',
-        rqutProcCn: '서울주거포털 온라인 신청',
-        applUrl: 'https://housing.seoul.go.kr',
-        sporCn: '월 20만원 × 최대 12개월',
-        cnsgNmor: '서울시 주택정책실'
-      },
-      {
-        polyBizSjnm: '청년취업사관학교',
-        polyBizTy: '003002001',
-        polyBizCn: 'IT 개발자 양성 교육 및 취업 연계',
-        polyItcnCn: '6개월 전액 무료 교육 + 취업 지원',
-        ageInfo: '만 19세 ~ 34세',
-        rqutPrdEnd: '2025-10-31',
-        rqutProcCn: '온라인 접수',
-        applUrl: 'https://www.seouljobs.net',
-        sporCn: '교육비 전액 무료, 훈련수당 월 30만원',
-        cnsgNmor: '서울시 일자리정책과'
-      },
-      {
-        polyBizSjnm: '서울 청년창업센터 입주 지원',
-        polyBizTy: '003002002',
-        polyBizCn: '창업공간 무료 제공 및 멘토링',
-        polyItcnCn: '예비창업자 및 3년 이내 창업기업 대상',
-        ageInfo: '만 19세 ~ 39세',
-        rqutPrdEnd: '상시모집',
-        rqutProcCn: '서울창업허브 홈페이지',
-        applUrl: 'https://seoulstartuphub.com',
-        sporCn: '사무공간 무료, 멘토링, 네트워킹',
-        cnsgNmor: '서울시 창업정책과'
-      },
-      {
-        polyBizSjnm: '희망두배 청년통장',
-        polyBizTy: '003002005',
-        polyBizCn: '저축액의 100% 매칭 지원',
-        polyItcnCn: '근로 청년 자산형성 지원 (2년/3년)',
-        ageInfo: '만 18세 ~ 34세',
-        rqutPrdEnd: '2025-09-30',
-        rqutProcCn: '서울시 복지포털',
-        applUrl: 'https://wis.seoul.go.kr',
-        sporCn: '본인저축액 1:1 매칭 (월 10/15만원)',
-        cnsgNmor: '서울시 청년정책과'
-      },
-      {
-        polyBizSjnm: '서울런 (Seoul Learn)',
-        polyBizTy: '003002004',
-        polyBizCn: '온라인 교육 플랫폼 무료 이용',
-        polyItcnCn: '서울시 청년 대상 온라인 강의 무제한 수강',
-        ageInfo: '만 18세 ~ 39세',
-        rqutPrdEnd: '상시',
-        rqutProcCn: '서울런 홈페이지 가입',
-        applUrl: 'https://slearn.seoul.go.kr',
-        sporCn: '연간 이용권 무료 제공',
-        cnsgNmor: '서울시 평생교육과'
-      }
-    ];
+    // 구별 실제 정책 가져오기
+    const districtKey = Object.keys(DISTRICT_MAPPING).find(key => 
+      DISTRICT_MAPPING[key].ko === districtName
+    );
     
-    // 구별로 일부 커스터마이징
-    if (districtName.includes('강남')) {
-      realSeoulPolicies.push({
-        polyBizSjnm: `${districtName} 청년 스타트업 지원`,
-        polyBizTy: '003002002',
-        polyBizCn: '강남구 특화 창업 지원 프로그램',
-        polyItcnCn: 'IT, 바이오, 핀테크 분야 집중 지원',
-        ageInfo: '만 19세 ~ 39세',
-        rqutPrdEnd: '2025-11-30',
-        rqutProcCn: '강남구청 홈페이지',
-        applUrl: 'https://www.gangnam.go.kr',
-        sporCn: '창업자금 최대 5천만원',
-        cnsgNmor: '강남구청'
-      });
-    }
+    const allPolicies = getDistrictPolicies(districtKey);
     
-    console.log(`✅ 실제 서울시 청년정책 ${realSeoulPolicies.length}개 반환`);
+    console.log(`✅ ${districtName} 실제 정책 ${allPolicies.length}개 반환 (공통 5개 + 구별 특화)`);
     
-    return realSeoulPolicies.map(policy => ({
-      ...policy,
-      _source: '서울시 청년정책 (2024)',
-      _isRealData: true
+    // 정책 데이터를 API 형식으로 변환
+    return allPolicies.map(policy => ({
+      polyBizSjnm: policy.name,
+      polyBizTy: policy.category === '취업' ? '003002001' : 
+                 policy.category === '창업' ? '003002002' :
+                 policy.category === '주거' ? '003002003' :
+                 policy.category === '교육' ? '003002004' :
+                 policy.category === '복지' ? '003002005' :
+                 policy.category === '문화' ? '003002006' : '003002010',
+      polyBizCn: policy.support,
+      polyItcnCn: policy.support,
+      ageInfo: policy.age,
+      rqutPrdEnd: policy.deadline,
+      rqutProcCn: '온라인 신청',
+      applUrl: policy.url,
+      sporCn: policy.support,
+      cnsgNmor: districtName.includes('구') ? districtName : `${districtName}구청`,
+      _source: '실제 구별 정책',
+      _isRealData: true,
+      _isDistrictPolicy: !SEOUL_COMMON_POLICIES.some(p => p.name === policy.name)
     }));
     
   } catch (error) {
