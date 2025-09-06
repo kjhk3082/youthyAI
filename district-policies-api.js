@@ -288,6 +288,12 @@ router.get('/district-policies', async (req, res) => {
       result[district] = policies;
     });
     
+    // API 실패 여부 체크 (모든 데이터가 동일한지 확인)
+    const isMockData = Object.values(result).every(policies => 
+      policies.length > 0 && 
+      policies[0]?.title?.includes('청년창업 공간 입주 모집')
+    );
+    
     // 캐시 저장
     const responseData = {
       data: result,
@@ -295,7 +301,8 @@ router.get('/district-policies', async (req, res) => {
         totalPolicies: Object.values(result).reduce((sum, arr) => sum + arr.length, 0),
         districts: Object.keys(result),
         lastUpdate: new Date().toISOString(),
-        source: 'Youth Center API'
+        source: isMockData ? 'mock' : 'Youth Center API',
+        notice: isMockData ? '청년센터 API 연결 실패로 Mock 데이터를 제공합니다' : undefined
       }
     };
     
