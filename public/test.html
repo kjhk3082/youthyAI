@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOUTHY AI - API 테스트 페이지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .test-card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #007AFF;
+            padding-bottom: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .response-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #007AFF;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .response-box pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 12px;
+            color: #333;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .endpoint-info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #004085;
+        }
+        
+        .endpoint-info code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .stat-item .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007AFF;
+        }
+        
+        .stat-item .label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 YOUTHY AI API 테스트 페이지</h1>
+        
+        <div class="test-grid">
+            <!-- Health Check -->
+            <div class="test-card">
+                <h2>🏥 Health Check</h2>
+                <div class="endpoint-info">
+                    Endpoint: <code>GET /api/health</code>
+                </div>
+                <button onclick="testHealth()">시스템 상태 확인</button>
+                <div id="health-response" class="response-box" style="display:none;"></div>
+            </div>
+            
+            <!-- Chat API Test -->
+            <div class="test-card">
+                <h2>💬 Chat API</h2>
+                <div class="endpoint-info">
+                    Endpoint: <code>POST /api/chat</code>
+                </div>
+                <div class="input-group">
+                    <label>메시지:</label>
+                    <textarea id="chat-message" placeholder="예: 청년 월세 지원에 대해 알려주세요">청년 월세 지원에 대해 알려주세요</textarea>
+                </div>
+                <button onclick="testChat()">메시지 전송</button>
+                <div id="chat-response" class="response-box" style="display:none;"></div>
+            </div>
+            
+            <!-- Quick Ask Test -->
+            <div class="test-card">
+                <h2>⚡ Quick Ask</h2>
+                <div class="endpoint-info">
+                    Endpoint: <code>POST /api/quick-ask</code>
+                </div>
+                <div class="input-group">
+                    <label>질문:</label>
+                    <input type="text" id="quick-question" placeholder="간단한 질문 입력" value="청년 정책 자격 조건은?">
+                </div>
+                <button onclick="testQuickAsk()">빠른 질문</button>
+                <div id="quick-response" class="response-box" style="display:none;"></div>
+            </div>
+            
+            <!-- Search Policies -->
+            <div class="test-card">
+                <h2>🔍 정책 검색</h2>
+                <div class="endpoint-info">
+                    Endpoint: <code>GET /api/search</code>
+                </div>
+                <div class="input-group">
+                    <label>검색어:</label>
+                    <input type="text" id="search-query" placeholder="검색어 입력" value="월세">
+                </div>
+                <button onclick="testSearch()">검색</button>
+                <div id="search-response" class="response-box" style="display:none;"></div>
+            </div>
+            
+            <!-- Get Suggestions -->
+            <div class="test-card">
+                <h2>💡 추천 질문</h2>
+                <div class="endpoint-info">
+                    Endpoint: <code>GET /api/suggestions</code>
+                </div>
+                <button onclick="testSuggestions()">추천 질문 가져오기</button>
+                <div id="suggestions-response" class="response-box" style="display:none;"></div>
+            </div>
+            
+            <!-- Get Policies by Category -->
+            <div class="test-card">
+                <h2>📂 카테고리별 정책</h2>
+                <div class="endpoint-info">
+                    Endpoint: <code>GET /api/policies/:category</code>
+                </div>
+                <div class="input-group">
+                    <label>카테고리:</label>
+                    <select id="policy-category" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <option value="housing">주거 (housing)</option>
+                        <option value="employment">취업 (employment)</option>
+                        <option value="startup">창업 (startup)</option>
+                    </select>
+                </div>
+                <button onclick="testPolicies()">정책 조회</button>
+                <div id="policies-response" class="response-box" style="display:none;"></div>
+            </div>
+            
+            <!-- Chat History -->
+            <div class="test-card">
+                <h2>📜 대화 기록</h2>
+                <div class="endpoint-info">
+                    Endpoint: <code>GET /api/history</code>
+                </div>
+                <button onclick="testHistory()">최근 대화 조회</button>
+                <div id="history-response" class="response-box" style="display:none;"></div>
+            </div>
+            
+            <!-- API Statistics -->
+            <div class="test-card">
+                <h2>📊 API 통계</h2>
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-item">
+                        <div class="value" id="total-requests">0</div>
+                        <div class="label">총 요청 수</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" id="success-rate">0%</div>
+                        <div class="label">성공률</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" id="avg-response">0ms</div>
+                        <div class="label">평균 응답시간</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" id="active-sessions">0</div>
+                        <div class="label">활성 세션</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = '';
+        let totalRequests = 0;
+        let successRequests = 0;
+        let responseTimes = [];
+        
+        function updateStats() {
+            document.getElementById('total-requests').textContent = totalRequests;
+            const successRate = totalRequests > 0 ? Math.round((successRequests / totalRequests) * 100) : 0;
+            document.getElementById('success-rate').textContent = successRate + '%';
+            const avgTime = responseTimes.length > 0 ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0;
+            document.getElementById('avg-response').textContent = avgTime + 'ms';
+            document.getElementById('active-sessions').textContent = '1';
+        }
+        
+        async function makeRequest(url, options = {}) {
+            totalRequests++;
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch(API_BASE + url, options);
+                const data = await response.json();
+                
+                const responseTime = Date.now() - startTime;
+                responseTimes.push(responseTime);
+                
+                if (response.ok) {
+                    successRequests++;
+                }
+                
+                updateStats();
+                
+                return { success: response.ok, data, responseTime };
+            } catch (error) {
+                updateStats();
+                return { success: false, error: error.message };
+            }
+        }
+        
+        function showResponse(elementId, result, formatted = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            if (result.success) {
+                const status = `<div class="status success">✓ 성공 (${result.responseTime}ms)</div>`;
+                const content = formatted ? result.data : JSON.stringify(result.data, null, 2);
+                element.innerHTML = status + '<pre>' + content + '</pre>';
+            } else {
+                const status = '<div class="status error">✗ 실패</div>';
+                element.innerHTML = status + '<pre>Error: ' + (result.error || JSON.stringify(result.data)) + '</pre>';
+            }
+        }
+        
+        async function testHealth() {
+            const result = await makeRequest('/api/health');
+            showResponse('health-response', result);
+        }
+        
+        async function testChat() {
+            const message = document.getElementById('chat-message').value;
+            const result = await makeRequest('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            
+            if (result.success && result.data.message) {
+                const formatted = `메시지:\n${result.data.message}\n\n참고자료:\n${JSON.stringify(result.data.references, null, 2)}\n\n추천 질문:\n${JSON.stringify(result.data.followUpQuestions, null, 2)}`;
+                showResponse('chat-response', { ...result, data: formatted }, true);
+            } else {
+                showResponse('chat-response', result);
+            }
+        }
+        
+        async function testQuickAsk() {
+            const question = document.getElementById('quick-question').value;
+            const result = await makeRequest('/api/quick-ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            });
+            showResponse('quick-response', result);
+        }
+        
+        async function testSearch() {
+            const query = document.getElementById('search-query').value;
+            const result = await makeRequest('/api/search?q=' + encodeURIComponent(query));
+            showResponse('search-response', result);
+        }
+        
+        async function testSuggestions() {
+            const result = await makeRequest('/api/suggestions');
+            showResponse('suggestions-response', result);
+        }
+        
+        async function testPolicies() {
+            const category = document.getElementById('policy-category').value;
+            const result = await makeRequest('/api/policies/' + category);
+            showResponse('policies-response', result);
+        }
+        
+        async function testHistory() {
+            const result = await makeRequest('/api/history?limit=5');
+            showResponse('history-response', result);
+        }
+        
+        // Initial health check
+        window.onload = () => {
+            testHealth();
+        };
+    </script>
+</body>
+</html>
