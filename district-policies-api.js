@@ -35,6 +35,20 @@ const DISTRICT_MAPPING = {
   'Jungnang-gu': { ko: '중랑구', code: '003002001001025', zipCd: '11260' }
 };
 
+// 설명 텍스트 정리 함수
+function cleanDescription(text) {
+  if (!text) return text;
+  
+  // "ㅇ " 또는 "○ "로 시작하는 경우 제거
+  let cleaned = text.replace(/^[ㅇ○]\s+/, '');
+  
+  // 여러 줄에 걸쳐 있는 경우도 처리
+  cleaned = cleaned.replace(/\n[ㅇ○]\s+/g, '\n');
+  
+  // 앞뒤 공백 제거
+  return cleaned.trim();
+}
+
 // 카테고리 매핑
 const CATEGORY_MAPPING = {
   '003002001': '취업',
@@ -272,8 +286,8 @@ async function fetchFromYouthCenter(districtCode, page = 1) {
             return {
               polyBizSjnm: policy.plcyNm || `청년정책 ${index + 1}`,
               polyBizTy: policy.lclsfNm || '003002001',
-              polyBizCn: policy.plcyExplnCn || '청년 지원 정책',  // 정책설명내용으로 변경
-              polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
+              polyBizCn: cleanDescription(policy.plcyExplnCn) || '청년 지원 정책',  // 정책설명내용으로 변경 및 정리
+              polyItcnCn: cleanDescription(policy.plcyExplnCn) || '정책 상세 내용',
               ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
               rqutPrdEnd: endDate,
               rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
@@ -302,8 +316,8 @@ async function fetchFromYouthCenter(districtCode, page = 1) {
         return {
           polyBizSjnm: policy.plcyNm || `${districtName} 청년정책 ${index + 1}`,
           polyBizTy: policy.lclsfNm || '003002001',
-          polyBizCn: policy.plcyExplnCn || '청년 지원 정책',  // 정책설명내용으로 변경
-          polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
+          polyBizCn: cleanDescription(policy.plcyExplnCn) || '청년 지원 정책',  // 정책설명내용으로 변경 및 정리
+          polyItcnCn: cleanDescription(policy.plcyExplnCn) || '정책 상세 내용',
           ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
           rqutPrdEnd: endDate,
           rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
@@ -382,13 +396,16 @@ function transformPolicy(policy, districtName, index) {
   // 핫 정책 판단 (조회수, 신청자 수 등으로 판단 - API에서 제공시)
   const isHot = index < 3; // 상위 3개를 핫으로 표시 (실제로는 조회수 등으로 판단)
   
+  // 설명 텍스트 정리
+  const description = cleanDescription(policy.polyBizCn || policy.polyItcnCn || '상세 내용 참조');
+  
   return {
     id: policy.polyBizSjnm ? policy.polyBizSjnm.hashCode() : Math.random() * 100000,
     title: policy.polyBizSjnm || '제목 없음',
     category: category,
     target: formatTarget(policy.ageInfo, policy.edubgReqmCn),
     deadline: deadline,
-    description: policy.polyBizCn || policy.polyItcnCn || '상세 내용 참조',
+    description: description,
     district: districtName,
     isHot: isHot,
     isRecruiting: deadline !== null,
