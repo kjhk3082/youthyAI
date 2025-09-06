@@ -1668,6 +1668,7 @@ function generateResponse(intent, policies, originalMessage) {
                     '인기 있는 정책 추천'
                 ];
             }
+            break;
     }
     
     // Check if response contains policy information (for poster display)
