@@ -417,10 +417,25 @@ class YouthyChat {
             
             // Apply formatting to content
             processedContent = processedContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            processedContent = processedContent.replace(/•\s*(.+?)(?=\n|•|$)/g, (m, p1) => {
-                return `<div class="policy-detail-item">• ${p1}</div>`;
-            });
-            processedContent = processedContent.replace(/\n/g, '<br>');
+            
+            // Clean up bullet points - process line by line
+            const lines = processedContent.split('\n');
+            const processedLines = lines.map(line => {
+                // Check if line starts with bullet or dash
+                if (line.match(/^[•\-]\s*/)) {
+                    // Remove bullet/dash and any HTML artifacts
+                    const cleanText = line.replace(/^[•\-]\s*/, '')
+                                          .replace(/<[^>]*>/g, '')
+                                          .replace(/detail.*?item["'>]*/gi, '')
+                                          .trim();
+                    if (cleanText) {
+                        return `<div class="policy-detail-item">• ${cleanText}</div>`;
+                    }
+                }
+                return line;
+            }).filter(line => line !== '');
+            
+            processedContent = processedLines.join('<br>');
             
             return `<div class="policy-card">
                 <div class="policy-title">📍 ${title}</div>
@@ -441,12 +456,22 @@ class YouthyChat {
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         
         // Bullet points with better spacing (for remaining unprocessed bullets)
-        text = text.replace(/•\s*(.+?)(?=\n|•|$)/g, (m, p1) => {
-            return `<div class="policy-detail-item">• ${p1}</div>`;
-        });
-        text = text.replace(/-\s*(.+?)(?=\n|-|$)/g, (m, p1) => {
-            return `<div class="policy-detail-item">- ${p1}</div>`;
-        });
+        // Process line by line to avoid HTML corruption
+        const lines = text.split('\n');
+        text = lines.map(line => {
+            // Check if this line is a bullet point (not already in a div)
+            if (line.match(/^[•\-]\s*/) && !line.includes('policy-detail-item')) {
+                // Clean the text from any HTML artifacts
+                const cleanText = line.replace(/^[•\-]\s*/, '')
+                                     .replace(/<[^>]*>/g, '')
+                                     .replace(/detail.*?item["'>]*/gi, '')
+                                     .trim();
+                if (cleanText) {
+                    return `<div class="policy-detail-item">• ${cleanText}</div>`;
+                }
+            }
+            return line;
+        }).join('\n');
         
         // Apply blue highlights AFTER structure formatting
         text = this.applyBlueHighlights(text);
