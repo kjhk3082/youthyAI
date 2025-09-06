@@ -118,7 +118,39 @@ function calculateDDay(endDate) {
   }
   
   try {
-    const end = new Date(endDate);
+    let end;
+    
+    // YYYYMMDD 형식 처리
+    if (typeof endDate === 'string' && /^\d{8}$/.test(endDate)) {
+      const year = endDate.substring(0, 4);
+      const month = endDate.substring(4, 6);
+      const day = endDate.substring(6, 8);
+      end = new Date(`${year}-${month}-${day}`);
+    } 
+    // YYYY-MM-DD 또는 YYYY.MM.DD 형식
+    else if (typeof endDate === 'string' && /^\d{4}[-.\s]\d{2}[-.\s]\d{2}/.test(endDate)) {
+      end = new Date(endDate.substring(0, 10).replace(/[.\s]/g, '-'));
+    }
+    // 기타 형식
+    else {
+      end = new Date(endDate);
+    }
+    
+    // Invalid Date 체크
+    if (isNaN(end.getTime())) {
+      // 날짜 파싱 실패 시
+      if (typeof endDate === 'string' && endDate.includes('상시')) {
+        return '상시모집';
+      }
+      // YYYYMMDD 형식이면 MM/DD로 변환
+      if (typeof endDate === 'string' && /^\d{8}$/.test(endDate)) {
+        const month = parseInt(endDate.substring(4, 6));
+        const day = parseInt(endDate.substring(6, 8));
+        return `~${month}/${day}`;
+      }
+      return '날짜 확인 필요';
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
@@ -130,16 +162,14 @@ function calculateDDay(endDate) {
       return null; // 마감된 정책
     } else if (diffDays === 0) {
       return '~오늘';
-    } else if (diffDays <= 30) {
-      const endMonth = end.getMonth() + 1;
-      const endDay = end.getDate();
-      return `~${endMonth}/${endDay}`;
     } else {
       const endMonth = end.getMonth() + 1;
       const endDay = end.getDate();
       return `~${endMonth}/${endDay}`;
     }
   } catch (error) {
+    // 에러 발생 시 안전한 기본값 반환
+    console.error('Date parsing error:', error, 'for date:', endDate);
     return '날짜 확인 필요';
   }
 }
@@ -228,39 +258,63 @@ async function fetchFromYouthCenter(districtCode, page = 1) {
           console.log(`  서울시 전체 정책: ${seoulPolicies.length}개`);
           
           // 온통청년 API 데이터 변환
-          return seoulPolicies.slice(0, 15).map((policy, index) => ({
-            polyBizSjnm: policy.plcyNm || `청년정책 ${index + 1}`,
-            polyBizTy: policy.lclsfNm || '003002001',
-            polyBizCn: policy.plcySprtCn || '청년 지원 정책',
-            polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
-            ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
-            rqutPrdEnd: policy.aplyYmd || policy.bizPrdEndYmd || '상시모집',
-            rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
-            applUrl: policy.aplyUrlAddr || 'https://www.youthcenter.go.kr',
-            sporCn: policy.plcySprtCn || '지원내용 참조',
-            cnsgNmor: policy.sprvsnInstCdNm || '서울시',
-            _source: '온통청년',
-            _isRealData: true
-          }));
+          return seoulPolicies.slice(0, 15).map((policy, index) => {
+            // 날짜 처리 - 여러 필드 확인
+            let endDate = '상시모집';
+            if (policy.aplyYmd && policy.aplyYmd !== '상시') {
+              endDate = policy.aplyYmd;
+            } else if (policy.bizPrdEndYmd && policy.bizPrdEndYmd !== '상시') {
+              endDate = policy.bizPrdEndYmd;
+            } else if (policy.rqutPrdEnd && policy.rqutPrdEnd !== '상시') {
+              endDate = policy.rqutPrdEnd;
+            }
+            
+            return {
+              polyBizSjnm: policy.plcyNm || `청년정책 ${index + 1}`,
+              polyBizTy: policy.lclsfNm || '003002001',
+              polyBizCn: policy.plcySprtCn || '청년 지원 정책',
+              polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
+              ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
+              rqutPrdEnd: endDate,
+              rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
+              applUrl: policy.aplyUrlAddr || 'https://www.youthcenter.go.kr',
+              sporCn: policy.plcySprtCn || '지원내용 참조',
+              cnsgNmor: policy.sprvsnInstCdNm || '서울시',
+              _source: '온통청년',
+              _isRealData: true
+            };
+          });
         }
       }
       
       // 구별 정책 데이터 변환
-      return policies.slice(0, 20).map((policy, index) => ({
-        polyBizSjnm: policy.plcyNm || `${districtName} 청년정책 ${index + 1}`,
-        polyBizTy: policy.lclsfNm || '003002001',
-        polyBizCn: policy.plcySprtCn || '청년 지원 정책',
-        polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
-        ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
-        rqutPrdEnd: policy.aplyYmd || policy.bizPrdEndYmd || '상시모집',
-        rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
-        applUrl: policy.aplyUrlAddr || 'https://www.youthcenter.go.kr',
-        sporCn: policy.plcySprtCn || '지원내용 참조',
-        cnsgNmor: policy.sprvsnInstCdNm || districtName,
-        _source: '온통청년',
-        _isRealData: true,
-        _isDistrictPolicy: true
-      }));
+      return policies.slice(0, 20).map((policy, index) => {
+        // 날짜 처리 - 여러 필드 확인
+        let endDate = '상시모집';
+        if (policy.aplyYmd && policy.aplyYmd !== '상시') {
+          endDate = policy.aplyYmd;
+        } else if (policy.bizPrdEndYmd && policy.bizPrdEndYmd !== '상시') {
+          endDate = policy.bizPrdEndYmd;
+        } else if (policy.rqutPrdEnd && policy.rqutPrdEnd !== '상시') {
+          endDate = policy.rqutPrdEnd;
+        }
+        
+        return {
+          polyBizSjnm: policy.plcyNm || `${districtName} 청년정책 ${index + 1}`,
+          polyBizTy: policy.lclsfNm || '003002001',
+          polyBizCn: policy.plcySprtCn || '청년 지원 정책',
+          polyItcnCn: policy.plcyExplnCn || '정책 상세 내용',
+          ageInfo: `만 ${policy.sprtTrgtMinAge || 19}세 ~ ${policy.sprtTrgtMaxAge || 39}세`,
+          rqutPrdEnd: endDate,
+          rqutProcCn: policy.plcyAplyMthdCn || '온라인 신청',
+          applUrl: policy.aplyUrlAddr || 'https://www.youthcenter.go.kr',
+          sporCn: policy.plcySprtCn || '지원내용 참조',
+          cnsgNmor: policy.sprvsnInstCdNm || districtName,
+          _source: '온통청년',
+          _isRealData: true,
+          _isDistrictPolicy: true
+        };
+      });
     }
     
     // 백업 옵션: 실제 구별 정책 데이터 사용
