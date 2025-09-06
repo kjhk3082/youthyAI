@@ -7,8 +7,21 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.API_PORT || 3001;
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration for frontend developers
+app.use(cors({
+  origin: [
+    'http://localhost:3000',  // Frontend developer's local environment
+    'http://localhost:3001',  // API server itself
+    'http://localhost:5173',  // Vite dev server
+    'http://localhost:5174',  // Alternative Vite port
+    'https://3000-ie8kwy33uts4uea5lzj2o-6532622b.e2b.dev',
+    'https://3001-ie8kwy33uts4uea5lzj2o-6532622b.e2b.dev',
+    /^http:\/\/localhost:\d+$/  // Allow all localhost ports
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Serve static files from public directory
@@ -24,7 +37,101 @@ const swaggerOptions = {
     info: {
       title: 'Youth District Policies API',
       version: '1.0.0',
-      description: '서울시 구별 청년 정책 데이터를 프론트엔드 형식으로 제공하는 API',
+      description: `
+# 서울시 구별 청년 정책 API
+
+## 🎯 프론트엔드 개발자를 위한 안내
+
+### 📌 이 API의 특별한 점
+**이 API는 실제 청년센터(온통청년) API 데이터를 프론트엔드 TypeScript 인터페이스와 완벽히 일치하는 형식으로 변환하여 제공합니다.**
+
+### 🔄 데이터 흐름
+1. **실시간 데이터 수집**: 청년센터(온통청년) Open API에서 실시간 정책 데이터 수집
+2. **형식 변환**: TypeScript 인터페이스 형식으로 자동 변환
+3. **프론트엔드 Ready**: 별도의 가공 없이 바로 사용 가능한 JSON 반환
+
+### 💻 프론트엔드 사용 방법
+
+#### 1. Axios 사용 예시:
+\`\`\`typescript
+import axios from 'axios';
+import { DistrictPolicies } from '@/types/policy';
+
+// API 베이스 URL (로컬 개발시)
+const API_BASE = 'http://localhost:3001';
+
+// 모든 구의 정책 가져오기
+const fetchAllPolicies = async () => {
+  const response = await axios.get(\`\${API_BASE}/api/district-policies\`);
+  const districtPolicies: DistrictPolicies = response.data.data;
+  return districtPolicies;
+};
+
+// 특정 구의 정책만 가져오기
+const fetchDistrictPolicies = async (districts: string[]) => {
+  const response = await axios.get(\`\${API_BASE}/api/district-policies\`, {
+    params: { districts: districts.join(',') }
+  });
+  return response.data.data;
+};
+\`\`\`
+
+#### 2. Fetch API 사용 예시:
+\`\`\`typescript
+// 서초구와 강남구 정책만 가져오기
+const policies = await fetch('http://localhost:3001/api/district-policies?districts=Seocho-gu,Gangnam-gu')
+  .then(res => res.json())
+  .then(data => data.data);
+
+// 기존 mock 데이터 대체
+export const districtPolicies: DistrictPolicies = policies;
+\`\`\`
+
+### ✅ CORS 설정
+- **localhost:3000** (프론트엔드 기본 포트) 허용됨
+- **localhost:5173, 5174** (Vite 개발 서버) 허용됨
+- 모든 localhost 포트에서 접근 가능
+
+### 📊 반환 데이터 형식
+API는 다음과 같은 TypeScript 인터페이스와 100% 일치하는 데이터를 반환합니다:
+
+\`\`\`typescript
+interface Policy {
+  id: number;
+  title: string;
+  category: '취업' | '창업' | '주거' | '교육' | '복지' | '문화/예술' | '참여권리' | '신체건강' | '정신건강' | '생활지원';
+  target: string;
+  deadline: string;
+  description: string;
+  district: string;
+  isHot: boolean;
+  isRecruiting: boolean;
+  image: string;
+  metadata?: {
+    applicationUrl?: string;
+    applicationMethod?: string;
+    supportAmount?: string;
+    contact?: string;
+    documents?: string;
+    lastUpdate?: string;
+  };
+}
+
+interface DistrictPolicies {
+  [district: string]: Policy[];
+}
+\`\`\`
+
+### 🔥 실제 데이터 vs Mock 데이터
+- **정상 작동시**: 청년센터 실시간 데이터 (metadata.source: "Youth Center API")
+- **API 타임아웃시**: 자동 생성된 Mock 데이터 (metadata.source: "mock")
+- Mock 데이터도 실제와 동일한 형식으로 제공되어 프론트엔드 코드 수정 불필요
+
+### 📝 주의사항
+1. **구 이름은 영문으로**: Gangnam-gu, Seocho-gu 형식 사용
+2. **D-Day 자동 계산**: deadline 필드는 "~MM/DD" 형식으로 자동 변환
+3. **만료된 정책 자동 필터링**: 이미 지난 정책은 자동으로 제외됨
+      `,
       contact: {
         name: 'API Support',
         email: 'support@youthpolicy.kr'
