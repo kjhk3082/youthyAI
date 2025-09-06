@@ -565,11 +565,16 @@ function generateResponse(intent, policies, originalMessage) {
             }
     }
     
+    // Check if response contains policy information (for poster display)
+    const hasPoster = ['housing', 'employment', 'startup', 'popular', 'jeonse', 'allowance', 'application'].includes(intent) && 
+                      (policies.length > 0 || intent === 'popular');
+    
     return {
         message,
         references,
         followUpQuestions,
         intent,
+        hasPoster,
         timestamp: new Date().toISOString()
     };
 }
