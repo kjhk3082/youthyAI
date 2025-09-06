@@ -206,7 +206,7 @@ class DataFetcher {
         console.log(`  - Seoul: ${seoulPolicies.length}`);
         console.log(`  - Youth Center (detailed): ${youthCenterPolicies.length}`);
         
-        return finalPolicies;
+        return this.addPhoneNumbersToPolicies(finalPolicies);
     }
 
     // 특정 정책 상세 정보 조회
@@ -259,6 +259,96 @@ class DataFetcher {
     async getPolicyDetail(policyId) {
         const allPolicies = await this.fetchAllPolicies();
         return allPolicies.find(policy => policy.id === policyId);
+    }
+
+    // 정책별 전화번호 추가 (기관별 정확한 전화번호)
+    addPhoneNumbersToPolicies(policies) {
+        const phoneNumbers = {
+            // 서울시 관련
+            '서울시': '02-2133-6587',
+            '서울시청': '02-2133-6587',
+            '서울청년포털': '02-2133-6587',
+            '서울일자리포털': '02-2133-6530',
+            '서울주택도시공사': '1600-3456',
+            'SH공사': '1600-3456',
+            
+            // 중앙정부 관련
+            '고용노동부': '1350',
+            '국토교통부': '1599-0001',
+            '중소벤처기업부': '1357',
+            '교육부': '02-6222-6060',
+            '보건복지부': '129',
+            '여성가족부': '02-2100-6000',
+            '문화체육관광부': '044-203-2000',
+            
+            // 청년 전문 기관
+            '온라인청년센터': '1811-9876',
+            '청년재단': '02-6358-0600',
+            '한국장학재단': '1599-2000',
+            '창업진흥원': '1357',
+            'K-Startup': '1357',
+            
+            // 지역별
+            '경기도': '031-8008-8000',
+            '인천시': '032-120',
+            '부산시': '051-120',
+            '대구시': '053-120',
+            '광주시': '062-120',
+            '대전시': '042-120',
+            '울산시': '052-120',
+            
+            // 기타 기관
+            'LH한국토지주택공사': '1600-1004',
+            '한국고용정보원': '1577-7114',
+            '소상공인시장진흥공단': '1588-5302',
+            '한국사회적기업진흥원': '031-697-7700'
+        };
+
+        return policies.map(policy => {
+            // 이미 전화번호가 있으면 유지
+            if (policy.application?.contact?.phone) {
+                return policy;
+            }
+
+            // 기관명으로 전화번호 찾기
+            let phone = '1811-9876'; // 기본값: 온라인청년센터
+            
+            const institution = policy.institution || policy.meta?.institution || '';
+            const title = policy.title || '';
+            const category = policy.category || '';
+            
+            // 기관명 매칭
+            for (const [key, number] of Object.entries(phoneNumbers)) {
+                if (institution.includes(key) || title.includes(key)) {
+                    phone = number;
+                    break;
+                }
+            }
+            
+            // 카테고리별 기본 전화번호
+            if (phone === '1811-9876') {
+                if (category === '주거' || title.includes('주거') || title.includes('월세') || title.includes('전세')) {
+                    phone = '1600-3456'; // SH공사
+                } else if (category === '일자리' || title.includes('취업') || title.includes('일자리')) {
+                    phone = '1350'; // 고용노동부
+                } else if (category === '창업' || title.includes('창업')) {
+                    phone = '1357'; // 창업진흥원
+                } else if (title.includes('서울')) {
+                    phone = '02-2133-6587'; // 서울시청
+                }
+            }
+
+            // 전화번호 추가
+            if (!policy.application) {
+                policy.application = {};
+            }
+            if (!policy.application.contact) {
+                policy.application.contact = {};
+            }
+            policy.application.contact.phone = phone;
+            
+            return policy;
+        });
     }
 }
 

@@ -35,7 +35,13 @@ class RAGSystem {
                 keywords: ['월세', '주거', '서울시', '청년주택'],
                 eligibility: '만 19-39세, 무주택, 중위소득 150% 이하',
                 amount: '월 20만원 (최대 12개월)',
-                url: 'https://youth.seoul.go.kr'
+                url: 'https://youth.seoul.go.kr',
+                application: {
+                    contact: {
+                        department: '서울시 청년정책담당관',
+                        phone: '02-2133-6587'
+                    }
+                }
             },
             {
                 id: 'housing-002',
@@ -45,7 +51,13 @@ class RAGSystem {
                 keywords: ['전세', '대출', '주거', '전세자금'],
                 eligibility: '만 19-34세, 무주택, 연소득 5천만원 이하',
                 amount: '최대 2억원',
-                url: 'https://nhuf.molit.go.kr'
+                url: 'https://nhuf.molit.go.kr',
+                application: {
+                    contact: {
+                        department: '주택도시기금',
+                        phone: '1566-9009'
+                    }
+                }
             },
             {
                 id: 'employment-001',
@@ -55,7 +67,13 @@ class RAGSystem {
                 keywords: ['취업', '인턴', '일자리', '인턴십'],
                 eligibility: '만 15-34세 미취업 청년',
                 amount: '월 180만원 이상',
-                url: 'https://www.work.go.kr'
+                url: 'https://www.work.go.kr',
+                application: {
+                    contact: {
+                        department: '고용노동부 청년취업지원과',
+                        phone: '1350'
+                    }
+                }
             },
             {
                 id: 'startup-001',
@@ -65,7 +83,13 @@ class RAGSystem {
                 keywords: ['창업', '지원금', '스타트업', '사업'],
                 eligibility: '만 39세 이하 예비창업자 또는 3년 이내 창업자',
                 amount: '최대 1억원',
-                url: 'https://www.k-startup.go.kr'
+                url: 'https://www.k-startup.go.kr',
+                application: {
+                    contact: {
+                        department: '창업진흥원',
+                        phone: '1357'
+                    }
+                }
             },
             {
                 id: 'allowance-001',
@@ -75,7 +99,13 @@ class RAGSystem {
                 keywords: ['청년수당', '수당', '구직활동', '생활비'],
                 eligibility: '만 19-34세 미취업, 중위소득 150% 이하',
                 amount: '월 50만원 (최대 6개월)',
-                url: 'https://youth.seoul.go.kr'
+                url: 'https://youth.seoul.go.kr',
+                application: {
+                    contact: {
+                        department: '서울시 청년정책담당관',
+                        phone: '120'
+                    }
+                }
             }
         ];
     }
@@ -214,8 +244,23 @@ class RAGSystem {
                 if (doc.application.url) {
                     context += `신청링크: ${doc.application.url}\n`;
                 }
+                
+                // 연락처 정보 (중요!)
+                if (doc.application.contact) {
+                    if (doc.application.contact.phone) {
+                        context += `📞 문의전화: ${doc.application.contact.phone}\n`;
+                    }
+                    if (doc.application.contact.department) {
+                        context += `담당부서: ${doc.application.contact.department}\n`;
+                    }
+                    if (doc.application.contact.name) {
+                        context += `담당자: ${doc.application.contact.name}\n`;
+                    }
+                }
             } else {
                 context += `신청링크: ${doc.url || 'https://www.youthcenter.go.kr'}\n`;
+                // 기본 연락처
+                context += `📞 문의전화: 1811-9876 (온라인청년센터)\n`;
             }
             
             context += '\n';
@@ -234,7 +279,8 @@ class RAGSystem {
             const systemPrompt = `당신은 한국 청년 정책 전문 AI 어시스턴트 '유씨'입니다. 
             친절하고 정확하게 청년 정책 정보를 제공하세요.
             제공된 컨텍스트를 바탕으로 답변하되, 없는 정보는 만들지 마세요.
-            특히 신청 기간과 운영 기간을 명확히 안내해주세요.
+            특히 신청 기간, 운영 기간, 그리고 문의 전화번호를 반드시 포함해주세요.
+            전화번호는 📞 아이콘과 함께 강조하여 표시해주세요.
             답변은 구조화하여 읽기 쉽게 작성하세요.`;
 
             const userPrompt = `컨텍스트:\n${context}\n\n질문: ${query}`;
@@ -318,21 +364,25 @@ class RAGSystem {
             // 4. 응답 생성
             const message = await this.generateResponse(query, context);
             
-            // 5. 참조 링크 생성 (개선된 버전)
+            // 5. 참조 링크 생성 (개선된 버전 - 전화번호 포함)
             const references = similarDocuments.map(doc => {
                 const snippet = doc.content || doc.summary || '';
                 const url = doc.application?.url || doc.url || 'https://www.youthcenter.go.kr';
                 
-                // 신청 기간 정보 추가
+                // 신청 기간 및 전화번호 정보 추가
                 let displaySnippet = snippet.substring(0, 100) + '...';
                 if (doc.period?.application?.display) {
-                    displaySnippet += ` [신청기간: ${doc.period.application.display}]`;
+                    displaySnippet += ` [신청: ${doc.period.application.display}]`;
+                }
+                if (doc.application?.contact?.phone) {
+                    displaySnippet += ` [📞 ${doc.application.contact.phone}]`;
                 }
                 
                 return {
                     title: doc.title,
                     url: url,
-                    snippet: displaySnippet
+                    snippet: displaySnippet,
+                    phone: doc.application?.contact?.phone || '1811-9876' // 전화번호 포함
                 };
             });
             

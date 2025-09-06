@@ -171,10 +171,10 @@ class YouthCenterScraper {
                 process: data.jdgnPresCn || '',
                 url: data.rqutUrla || '',
                 contact: {
-                    department: data.mngtMson || '',
-                    name: data.cherCtpcCn || '',
-                    phone: data.cnsgNmor || '',
-                    refUrl: data.rfcSiteUrla1 || ''
+                    department: data.mngtMson || data.mngtMrofCherCn || '', // 주관부처
+                    name: data.cherCtpcCn || data.cnsgNmor || '', // 담당자명
+                    phone: this.extractPhoneNumber(data) || '', // 전화번호 추출
+                    refUrl: data.rfcSiteUrla1 || data.rfcSiteUrla2 || ''
                 }
             },
             
@@ -307,6 +307,76 @@ class YouthCenterScraper {
         };
     }
 
+    // 전화번호 추출 함수
+    extractPhoneNumber(data) {
+        // 여러 필드에서 전화번호 찾기
+        const phoneFields = [
+            data.cnsgNmor,      // 상담원 번호
+            data.cherCtpcCn,    // 담당자 연락처
+            data.rqutUrla,      // URL에 포함된 전화번호
+            data.mngtMrofCherCn, // 주관부처 담당자
+            data.etct           // 기타 정보
+        ];
+        
+        // 전화번호 패턴 (다양한 형식 지원)
+        const phonePatterns = [
+            /\d{2,3}[-.)\s]?\d{3,4}[-.)\s]?\d{4}/g,  // 02-1234-5678, 031-123-4567
+            /\(\d{2,3}\)\s?\d{3,4}[-.]?\d{4}/g,      // (02) 1234-5678
+            /\d{4}[-.]?\d{4}/g,                        // 1577-2000 (대표번호)
+            /1\d{3}/g                                   // 120 (민원번호)
+        ];
+        
+        for (const field of phoneFields) {
+            if (!field) continue;
+            
+            for (const pattern of phonePatterns) {
+                const matches = field.match(pattern);
+                if (matches && matches.length > 0) {
+                    // 첫 번째 매치된 전화번호 반환 (정리된 형식으로)
+                    return this.formatPhoneNumber(matches[0]);
+                }
+            }
+        }
+        
+        // 기본값: 온라인청년센터 대표번호
+        return '1811-9876';
+    }
+    
+    // 전화번호 포맷팅 함수
+    formatPhoneNumber(phone) {
+        // 숫자만 추출
+        const numbers = phone.replace(/[^0-9]/g, '');
+        
+        // 길이에 따라 포맷팅
+        if (numbers.length === 4) {
+            // 120, 1366 등
+            return numbers;
+        } else if (numbers.length === 7) {
+            // 123-4567
+            return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+        } else if (numbers.length === 8) {
+            // 1577-2000
+            return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+        } else if (numbers.length === 9) {
+            // 02-123-4567
+            return `${numbers.slice(0, 2)}-${numbers.slice(2, 5)}-${numbers.slice(5)}`;
+        } else if (numbers.length === 10) {
+            if (numbers.startsWith('02')) {
+                // 02-1234-5678
+                return `${numbers.slice(0, 2)}-${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+            } else {
+                // 031-123-4567
+                return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`;
+            }
+        } else if (numbers.length === 11) {
+            // 031-1234-5678
+            return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+        }
+        
+        // 기본: 원본 반환
+        return phone;
+    }
+    
     // 캐시 초기화
     clearCache() {
         this.cache.clear();
