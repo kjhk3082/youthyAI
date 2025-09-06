@@ -471,16 +471,39 @@ class YouthyChat {
         
         // Highlight important keywords and amounts
         const highlightPatterns = [
-            // Money amounts
-            /(\d{1,3}(?:,\d{3})*(?:만)?\s*원)/g,
+            // Money amounts - improved to catch all formats
+            /(\d{1,3}(?:,\d{3})*(?:만)?\s*원)/g,  // "50만원", "180만원", "1억원"
+            
             // Percentages
-            /(\d+(?:\.\d+)?%)/g,
+            /(\d+(?:\.\d+)?%)/g,  // "150%", "1.2%"
+            
             // Age ranges - improved pattern for various formats
             /(만\s*\d+\s*[-~]\s*\d+세)/g,  // "만 19-34세" or "만 19~34세"
             /(\d+\s*[-~]\s*\d+세)/g,         // "19-34세" or "19~34세"
             /(만\s*\d+세)/g,                  // "만 19세"
-            // Important keywords (reduced to avoid over-highlighting)
-            /(최대|최소|지원금|보조금|무료)/g
+            
+            // Duration patterns - NEW
+            /(\d+개월)/g,                      // "6개월", "12개월"
+            /(\d+년)/g,                         // "1년", "3년"
+            /(\d+주)/g,                         // "20주"
+            /(\d+시간)/g,                      // "20시간"
+            /(\d+회)/g,                         // "6회"
+            
+            // Important keywords - expanded for better coverage
+            /(최대|최소)/g,                    // "최대", "최소"
+            /(지원금|보조금|수당|장학금)/g,    // "지원금", "보조금", "수당", "장학금"
+            /(무료|전액|전액지원)/g,        // "무료", "전액", "전액지원"
+            /(월|연|일일)/g,                 // "월", "연", "일일"
+            /(대출|임대|할인|면제)/g,        // "대출", "임대", "할인", "면제"
+            
+            // Income criteria - NEW
+            /(중위소득\s*\d+%)/g,            // "중위소듍 150%"
+            /(소듍\s*\d+분위)/g,              // "소듍 8분위"
+            
+            // Amount expressions with "이상", "이하", "미만" - NEW
+            /(\d+(?:만원)?\s*이상)/g,         // "180만원 이상"
+            /(\d+(?:만원)?\s*이하)/g,         // "60만원 이하"
+            /(\d+(?:만원)?\s*미만)/g          // "5천만원 미만"
         ];
         
         highlightPatterns.forEach(pattern => {
