@@ -48,10 +48,10 @@ class YouthyChat {
             });
         });
 
-        // Scrap navigation button
+        // Scrap navigation button - navigate to scrap page
         if (this.scrapNavBtn) {
             this.scrapNavBtn.addEventListener('click', () => {
-                this.showScrapModal();
+                window.location.href = '/scrap.html';
             });
         }
 
@@ -343,15 +343,15 @@ class YouthyChat {
         const avatarDiv = document.createElement('div');
         
         if (sender === 'ai') {
-            // Use sparkles logo for AI messages
+            // Use YOUTHY sparkle logo for AI messages
             avatarDiv.className = 'message-avatar youthy-logo';
             avatarDiv.innerHTML = `
                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="100" height="100" fill="#007AFF"/>
+                    <rect width="100" height="100" fill="#007AFF" rx="10"/>
                     <g transform="translate(50, 50)">
-                        <path d="M-15 -7.5L-7.5 0L-15 7.5L-22.5 0Z" fill="white" opacity="0.8"/>
-                        <path d="M0 -20L10 0L0 20L-10 0Z" fill="white"/>
-                        <path d="M15 -12.5L20 -7.5L15 -2.5L10 -7.5Z" fill="white" opacity="0.6"/>
+                        <!-- YOUTHY sparkle: two overlapping diamonds -->
+                        <path d="M0 -15L11.25 0L0 15L-11.25 0Z" fill="white"/>
+                        <path d="M-15 0L0 -11.25L15 0L0 11.25Z" fill="white"/>
                     </g>
                 </svg>
             `;
@@ -506,6 +506,7 @@ class YouthyChat {
         localStorage.setItem('youthyScrapedMessages', JSON.stringify(this.scrapedMessages));
     }
 
+    /* Deprecated - using scrap page instead
     showScrapModal() {
         let modal = document.getElementById('scrapModal');
         if (!modal) {
@@ -658,6 +659,7 @@ class YouthyChat {
         
         modal.classList.add('active');
     }
+    */
 
     generatePosterGrid() {
         const posters = [
@@ -778,16 +780,16 @@ class YouthyChat {
         typingDiv.className = 'message ai';
         typingDiv.id = 'typing-indicator';
         
-        // Add sparkles logo for typing indicator
+        // Add YOUTHY sparkle logo for typing indicator
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'message-avatar youthy-logo';
         avatarDiv.innerHTML = `
             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="100" height="100" fill="#007AFF"/>
+                <rect width="100" height="100" fill="#007AFF" rx="10"/>
                 <g transform="translate(50, 50)">
-                    <path d="M-15 -7.5L-7.5 0L-15 7.5L-22.5 0Z" fill="white" opacity="0.8"/>
-                    <path d="M0 -20L10 0L0 20L-10 0Z" fill="white"/>
-                    <path d="M15 -12.5L20 -7.5L15 -2.5L10 -7.5Z" fill="white" opacity="0.6"/>
+                    <!-- YOUTHY sparkle: two overlapping diamonds -->
+                    <path d="M0 -15L11.25 0L0 15L-11.25 0Z" fill="white"/>
+                    <path d="M-15 0L0 -11.25L15 0L0 11.25Z" fill="white"/>
                 </g>
             </svg>
         `;

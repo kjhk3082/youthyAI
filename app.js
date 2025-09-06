@@ -87,6 +87,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Scrap page route
+app.get('/scrap.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'scrap.html'));
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({
